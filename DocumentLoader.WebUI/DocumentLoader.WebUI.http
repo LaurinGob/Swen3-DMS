@@ -1,0 +1,6 @@
+@DocumentLoader.WebUI_HostAddress = http://localhost:5263
+
+GET {{DocumentLoader.WebUI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

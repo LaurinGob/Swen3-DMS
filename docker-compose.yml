@@ -1,0 +1,6 @@
+services:
+  documentloader.api:
+    image: ${DOCKER_REGISTRY-}documentloaderapi
+    build:
+      context: .
+      dockerfile: DocumentLoader.API/Dockerfile

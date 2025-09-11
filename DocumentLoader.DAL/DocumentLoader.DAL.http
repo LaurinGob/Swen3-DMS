@@ -1,0 +1,6 @@
+@DocumentLoader.DAL_HostAddress = http://localhost:5229
+
+GET {{DocumentLoader.DAL_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
