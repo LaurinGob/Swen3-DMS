@@ -1,4 +1,9 @@
 
+using DocumentLoader.DAL;
+using DocumentLoader.DAL.Repositories;
+using Microsoft.EntityFrameworkCore;
+using System;
+
 namespace DocumentLoader.API
 {
     public class Program
@@ -10,9 +15,14 @@ namespace DocumentLoader.API
             // Add services to the container.
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddDbContext<DocumentDbContext>(options =>
+                    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+
 
             var app = builder.Build();
 
@@ -24,10 +34,7 @@ namespace DocumentLoader.API
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
 
             app.Run();
