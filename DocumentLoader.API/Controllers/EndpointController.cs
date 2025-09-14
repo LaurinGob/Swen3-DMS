@@ -80,6 +80,49 @@ namespace DocumentLoader.API.Controllers
             });
         }
 
-        // Optional: add endpoints for Update/Delete/Metadata queries using repository
+        // delete object from database
+        [HttpPost("delete")]
+        public async Task<IActionResult> Delete([FromQuery] string document_id)
+        {
+            if (string.IsNullOrWhiteSpace(document_id))
+                return BadRequest("No Document ID provided");
+            try
+            {
+                int id = int.Parse(document_id);
+            }
+            catch
+            {
+                return BadRequest("Provided Document ID could not be converted to Integer");
+            }
+            
+
+            // Todo: Delete document with corresponding document_id from db
+
+            return Ok("Document with the provided id " + document_id + " has been deleted");
+        }
+
+        // delete object from database
+        [HttpPost("update")]
+        public async Task<IActionResult> Update([FromQuery] string document_id, [FromQuery] string content)
+        {
+            if (string.IsNullOrWhiteSpace(document_id))
+                return BadRequest("No Document ID provided");
+            else if (string.IsNullOrWhiteSpace(content))
+                return BadRequest("Content must not be empty");
+
+            try
+            {
+                int id = int.Parse(document_id);
+            }
+            catch
+            {
+                return BadRequest("Provided Document ID could not be converted to Integer");
+            }
+
+
+            // Todo: Update document with corresponding document_id from db
+
+            return Ok("Document with the provided id " + document_id + " has been updated");
+        }
     }
 }
