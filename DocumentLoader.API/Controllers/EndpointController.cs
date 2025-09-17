@@ -81,14 +81,14 @@ namespace DocumentLoader.API.Controllers
         }
 
         // delete object from database
-        [HttpPost("delete")]
-        public async Task<IActionResult> Delete([FromQuery] string document_id)
+        [HttpDelete("delete")]
+        public async Task<IActionResult> Delete([FromQuery]int? document_id)
         {
-            if (string.IsNullOrWhiteSpace(document_id))
+            if (document_id == null)
                 return BadRequest("No Document ID provided");
             try
             {
-                int id = int.Parse(document_id);
+                int id = (int)document_id;
             }
             catch
             {
@@ -100,29 +100,26 @@ namespace DocumentLoader.API.Controllers
 
             return Ok("Document with the provided id " + document_id + " has been deleted");
         }
-
-        // delete object from database
-        [HttpPost("update")]
-        public async Task<IActionResult> Update([FromQuery] string document_id, [FromQuery] string content)
+        public class UpdateDocumentDto
         {
-            if (string.IsNullOrWhiteSpace(document_id))
-                return BadRequest("No Document ID provided");
-            else if (string.IsNullOrWhiteSpace(content))
-                return BadRequest("Content must not be empty");
+            public int DocumentId { get; set; }
+            public string Content { get; set; }
+        }
 
-            try
-            {
-                int id = int.Parse(document_id);
-            }
-            catch
-            {
-                return BadRequest("Provided Document ID could not be converted to Integer");
-            }
+        // update object from database
+        [HttpPut("update")]
+        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
+        {
+            if (dto == null || dto.DocumentId <= 0) return BadRequest();
+            if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
+
+            // Update document in DB
+            return Ok($"Document with ID {dto.DocumentId} has been updated");
 
 
             // Todo: Update document with corresponding document_id from db
 
-            return Ok("Document with the provided id " + document_id + " has been updated");
+            return Ok("Document with the provided id " + dto.DocumentId + " has been updated");
         }
     }
 }
