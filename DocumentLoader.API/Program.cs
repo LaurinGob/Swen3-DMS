@@ -20,6 +20,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 var app = builder.Build();
 
 // Apply pending migrations automatically
@@ -36,6 +44,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Serve wwwroot files (upload.html)
+app.UseStaticFiles();
+
 // Serve uploaded files from wwwroot/uploads
 var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
 if (!Directory.Exists(uploadsDir))
@@ -47,8 +58,10 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
+
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.UseCors("AllowFrontend");
 
 app.Run();
