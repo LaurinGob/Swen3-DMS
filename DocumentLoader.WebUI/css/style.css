@@ -1,0 +1,97 @@
+﻿/* Reset some defaults */
+body, h1, h2, h3, p, ul, li, form {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f7f9fc; /* soft gray-blue background */
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* Container for page content */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Headings */
+h1 {
+    margin-bottom: 20px;
+    color: #2c3e50; /* dark navy */
+}
+
+h2 {
+    margin: 15px 0;
+    color: #34495e;
+}
+
+/* Links */
+a {
+    color: #2980b9; /* blue */
+    text-decoration: none;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+/* Forms */
+form {
+    margin: 15px 0;
+    display: flex;
+    gap: 10px;
+}
+
+input[type="text"], input[type="file"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    flex: 1;
+}
+
+button {
+    padding: 8px 15px;
+    background: #2980b9; /* blue */
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+    button:hover {
+        background: #1f6391;
+    }
+
+/* Search results list */
+ul {
+    list-style: none;
+    margin-top: 20px;
+}
+
+    ul li {
+        background: #ecf0f1; /* light gray */
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+
+/* Status messages */
+#status {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #27ae60; /* green for success */
+}
+
+.error {
+    color: #c0392b; /* red for error */
+}
