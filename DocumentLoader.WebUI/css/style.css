@@ -1,0 +1,118 @@
+﻿
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #9A8AAB;
+    color: #414125;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background-color: #F5F5F5;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h1, h2, h3 {
+    color: #5D4F6B;
+    margin-bottom: 15px;
+}
+
+h1 {
+    text-align: center;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+input[type="text"], input[type="file"], textarea {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #969686;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+button {
+    background-color: #B684EB;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    button:hover {
+        background-color: #9A8AAB;
+    }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+    table thead {
+        background-color: #5D4F6B;
+        color: #fff;
+    }
+
+    table th, table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #969686;
+    }
+
+    table tbody tr:nth-child(even) {
+        background-color: #EDED6833; /* light transparent highlight */
+    }
+
+#upload-status, #status {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+    #upload-status.success, #status.success {
+        background-color: #B684EB66;
+        color: #414125;
+    }
+
+    #upload-status.error, #status.error {
+        background-color: #9A8AAB66;
+        color: #414125;
+    }
+
+a {
+    color: #B684EB;
+    text-decoration: none;
+    margin-right: 10px;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+.container hr {
+    margin: 30px 0;
+    border: none;
+    border-top: 2px solid #969686;
+}
+
+textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #969686;
+    resize: vertical;
+}

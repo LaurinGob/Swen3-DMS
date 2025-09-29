@@ -119,7 +119,7 @@ namespace DocumentLoader.API.Controllers
 
             // Todo: Update document with corresponding document_id from db
 
-            return Ok("Document with the provided id " + dto.DocumentId + " has been updated");
+            //return Ok("Document with the provided id " + dto.DocumentId + " has been updated");
         }
     }
 }

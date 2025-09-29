@@ -25,4 +25,7 @@ RUN dotnet publish "./DocumentLoader.API.csproj" -c $BUILD_CONFIGURATION -o /app
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+EXPOSE 80
+
 ENTRYPOINT ["dotnet", "DocumentLoader.API.dll"]
