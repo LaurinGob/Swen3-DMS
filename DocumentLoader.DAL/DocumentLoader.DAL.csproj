@@ -16,7 +16,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
-  <ItemGroup>
+	<ItemGroup>
+		<Content Remove="appsettings*.json" />
+	</ItemGroup>
+
+	<ItemGroup>
     <ProjectReference Include="..\DocumentLoader.Models\DocumentLoader.Models.csproj" />
   </ItemGroup>
 
