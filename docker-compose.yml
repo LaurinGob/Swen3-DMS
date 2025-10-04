@@ -10,12 +10,6 @@ services:
       - "80"
     depends_on:
       - db
-      - rabbitmq
-    environment:
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__User=guest
-      - RabbitMQ__Password=guest
 
   db:
     image: postgres:16
@@ -28,23 +22,6 @@ services:
     ports:
       - "5432:5432"
 
-  rabbitmq:
-    image: rabbitmq:4.1-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    healthcheck:
-        test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-
   ui:
     image: nginx:latest
     volumes:
@@ -54,6 +31,3 @@ services:
       - "8080:80"
     depends_on:
       - documentloader.api
-
-volumes:
-  rabbitmq_data:
