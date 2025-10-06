@@ -24,40 +24,33 @@ namespace DocumentLoader.API.Controllers
                 return BadRequest("No file uploaded.");
 
             var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-            if (!Directory.Exists(uploadPath))
-            {
-                Directory.CreateDirectory(uploadPath);
-            }
+            if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
 
             var filePath = Path.Combine(uploadPath, file.FileName);
 
-            try
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                // Save file to disk
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Save metadata to database
-                var document = new Document
-                {
-                    FileName = file.FileName,
-                    FilePath = filePath,
-                    UploadedAt = DateTime.UtcNow,
-                    Summary = "" // optional: can fill after OCR later
-                };
-
-                await _repository.AddAsync(document);
-
-                var fileUrl = $"/uploads/{file.FileName}";
-                return Created(fileUrl, new { document.Id, document.FileName, Url = fileUrl });
+                await file.CopyToAsync(stream);
             }
-            catch (Exception ex)
+
+            var document = new Document
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+                FileName = file.FileName,
+                FilePath = filePath,
+                UploadedAt = DateTime.UtcNow,
+                Summary = ""
+            };
+
+            await _repository.AddAsync(document);
+
+            return Created($"/uploads/{file.FileName}", new UploadResultDto
+            {
+                Id = document.Id,
+                FileName = document.FileName,
+                Url = $"/uploads/{file.FileName}"
+            });
         }
+
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]
@@ -66,19 +59,19 @@ namespace DocumentLoader.API.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest("Search query cannot be empty.");
 
-            // Simple search: return all documents where FileName or Summary contains the query
             var allDocs = await _repository.GetAllAsync();
             var results = allDocs
                 .Where(d => d.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
                          || d.Summary.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .Select(d => new { d.Id, d.FileName, d.Summary });
+                .Select(d => new DocumentDto { Id = d.Id, FileName = d.FileName, Summary = d.Summary });
 
-            return Ok(new
+            return Ok(new SearchResultDto
             {
                 Query = query,
                 Results = results
             });
         }
+
 
         // delete object from database
         [HttpDelete("delete")]
@@ -100,11 +93,7 @@ namespace DocumentLoader.API.Controllers
 
             return Ok("Document with the provided id " + document_id + " has been deleted");
         }
-        public class UpdateDocumentDto
-        {
-            public int DocumentId { get; set; }
-            public string Content { get; set; }
-        }
+       
 
         // update object from database
         [HttpPut("update")]
@@ -121,5 +110,32 @@ namespace DocumentLoader.API.Controllers
 
             //return Ok("Document with the provided id " + dto.DocumentId + " has been updated");
         }
+
+        public class UpdateDocumentDto
+        {
+            public int DocumentId { get; set; }
+            public string Content { get; set; }
+        }
+
+        public class DocumentDto
+        {
+            public int Id { get; set; }
+            public string FileName { get; set; } = "";
+            public string Summary { get; set; } = "";
+        }
+
+        public class SearchResultDto
+        {
+            public string Query { get; set; } = "";
+            public IEnumerable<DocumentDto> Results { get; set; } = new List<DocumentDto>();
+        }
+
+        public class UploadResultDto
+        {
+            public int Id { get; set; }
+            public string FileName { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
     }
 }
