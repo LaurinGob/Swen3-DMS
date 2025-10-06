@@ -21,7 +21,7 @@ namespace DocumentLoader.DAL.Repositories
             return doc;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(int id)
         {
             var doc = await _context.Documents.FindAsync(id);
             if (doc != null)
@@ -36,7 +36,7 @@ namespace DocumentLoader.DAL.Repositories
             return await _context.Documents.ToListAsync();
         }
 
-        public async Task<Document?> GetByIdAsync(Guid id)
+        public async Task<Document?> GetByIdAsync(int id)
         {
             return await _context.Documents.FindAsync(id);
         }
