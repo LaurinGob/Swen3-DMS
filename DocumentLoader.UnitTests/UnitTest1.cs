@@ -1,16 +1,18 @@
-
 using DocumentLoader.API.Controllers;
+using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading.Tasks;
 using static DocumentLoader.API.Controllers.DocumentsController;
@@ -24,12 +26,28 @@ namespace DocumentLoader.UnitTests
 
         private Mock<IDocumentRepository> _mockRepo = null!;
         private DocumentsController _controller = null!;
+        private DocumentDbContext _context;
+        private DocumentRepository _repository;
+
 
         [SetUp]
         public void SetUp()
         {
             _mockRepo = new Mock<IDocumentRepository>();
             _controller = new DocumentsController(_mockRepo.Object);
+            var options = new DbContextOptionsBuilder<DocumentDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new DocumentDbContext(options);
+            _repository = new DocumentRepository(_context);
+
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _context.Dispose();
         }
 
         [Test]
@@ -142,5 +160,66 @@ namespace DocumentLoader.UnitTests
             Assert.That(okResult, Is.Not.Null);
             Assert.That(okResult!.Value, Is.EqualTo("Document with ID 1 has been updated"));
         }
+
+        [Test]
+        public async Task AddAsync_ShouldAddDocumentToDb()
+        {
+            var doc = new Document
+            {
+                FileName = "test.pdf",
+                Summary = "Test document",
+                UploadedAt = DateTime.UtcNow
+            };
+
+            await _repository.AddAsync(doc);
+
+            var saved = _context.Documents.FirstOrDefault(d => d.FileName == "test.pdf");
+            Assert.IsNotNull(saved);
+            Assert.AreEqual("Test document", saved.Summary);
+        }
+
+        [Test]
+        public async Task GetAllAsync_ShouldReturnAllDocuments()
+        {
+            _context.Documents.Add(new Document { FileName = "doc1.txt", Summary = "Doc 1" });
+            _context.Documents.Add(new Document { FileName = "doc2.txt", Summary = "Doc 2" });
+            await _context.SaveChangesAsync();
+
+            var result = await _repository.GetAllAsync();
+
+            Assert.AreEqual(2, result.Count());
+            Assert.IsTrue(result.Any(d => d.FileName == "doc1.txt"));
+        }
+
+        [Test]
+        public async Task UpdateAsync_ShouldUpdateExistingDocument()
+        {
+            var doc = new Document { FileName = "update.txt", Summary = "Old summary" };
+            _context.Documents.Add(doc);
+            await _context.SaveChangesAsync();
+
+            doc.Summary = "New summary";
+            await _repository.UpdateAsync(doc);
+
+            var updated = _context.Documents.First(d => d.FileName == "update.txt");
+            Assert.AreEqual("New summary", updated.Summary);
+        }
+
+        [Test]
+        public async Task DeleteAsync_ShouldRemoveDocument()
+        {
+            // Arrange
+            var doc = new Document { Id = 1, FileName = "delete.txt", Summary = "To be deleted" };
+            _context.Documents.Add(doc);
+            await _context.SaveChangesAsync();
+
+            // Act
+            await _repository.DeleteAsync(doc.Id);
+
+            // Assert
+            var exists = _context.Documents.Any(d => d.Id == doc.Id);
+            Assert.IsFalse(exists);
+        }
+
     }
 }
