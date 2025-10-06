@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.Models", "Do
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.UnitTests", "DocumentLoader.UnitTests\DocumentLoader.UnitTests.csproj", "{2ED66862-DF4B-4C91-B087-134A9DB399A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMq", "..\RabbitMq\RabbitMq.csproj", "{7E07D618-0BF8-4F57-9F4B-89B750248890}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMq", "RabbitMq\RabbitMq.csproj", "{7E07D618-0BF8-4F57-9F4B-89B750248890}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
