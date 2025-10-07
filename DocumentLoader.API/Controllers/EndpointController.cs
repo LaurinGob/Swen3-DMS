@@ -64,7 +64,7 @@ namespace DocumentLoader.API.Controllers
         public async Task<IActionResult> Search([FromQuery] string query)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return BadRequest("Search query cannot be empty.");
+                return BadRequest("Search query cannot be empty."); //TODO: DAL get every datapoint
 
             // Simple search: return all documents where FileName or Summary contains the query
             var allDocs = await _repository.GetAllAsync();
