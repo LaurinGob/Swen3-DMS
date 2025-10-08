@@ -29,21 +29,33 @@ services:
       - "5432:5432"
 
   rabbitmq:
-    image: rabbitmq:4.1-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    healthcheck:
-        test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      image: rabbitmq:3.12-management
+      container_name: rabbitmq
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+      environment:
+        RABBITMQ_DEFAULT_USER: myuser
+        RABBITMQ_DEFAULT_PASS: mypassword
+      healthcheck:
+          test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+      volumes:
+        - rabbitmq_data:/var/lib/rabbitmq
+
+  ocrworker:
+      build:
+        context: ./DocumentLoader.OCRWorker
+        dockerfile: Dockerfile
+      depends_on:
+        - rabbitmq
+      environment:
+        - RabbitMQ__Host=rabbitmq
+        - RabbitMQ__User=myuser
+        - RabbitMQ__Password=mypassword
+
 
   ui:
     image: nginx:latest
@@ -57,3 +69,4 @@ services:
 
 volumes:
   rabbitmq_data:
+
