@@ -29,6 +29,35 @@ services:
       LC_ALL: en_US.utf8
     ports:
       - "5432:5432"
+
+  rabbitmq:
+      image: rabbitmq:3.12-management
+      container_name: rabbitmq
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+      environment:
+        RABBITMQ_DEFAULT_USER: myuser
+        RABBITMQ_DEFAULT_PASS: mypassword
+      healthcheck:
+          test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+      volumes:
+        - rabbitmq_data:/var/lib/rabbitmq
+
+  ocrworker:
+      build:
+        context: ./DocumentLoader.OCRWorker
+        dockerfile: Dockerfile
+      depends_on:
+        - rabbitmq
+      environment:
+        - RabbitMQ__Host=rabbitmq
+        - RabbitMQ__User=myuser
+        - RabbitMQ__Password=mypassword
+
     networks:
       - appnet
 
@@ -44,6 +73,9 @@ services:
       - documentloader.api
     networks:
       - appnet
+
+volumes:
+  rabbitmq_data:
 
 networks:
   appnet:
