@@ -1,7 +1,10 @@
-﻿using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.API.Messaging;
+using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection.Metadata;
+
 
 namespace DocumentLoader.API.Controllers
 {
@@ -10,10 +13,12 @@ namespace DocumentLoader.API.Controllers
     public class DocumentsController : ControllerBase
     {
         private readonly IDocumentRepository _repository;
+        private readonly IRabbitMqPublisher _publisher;
 
-        public DocumentsController(IDocumentRepository repository)
+        public DocumentsController(IDocumentRepository repository, IRabbitMqPublisher publisher)
         {
             _repository = repository;
+            _publisher = publisher;
         }
 
         // Upload endpoint
@@ -40,7 +45,7 @@ namespace DocumentLoader.API.Controllers
                 }
 
                 // Save metadata to database
-                var document = new Document
+                var document = new Models.Document
                 {
                     FileName = file.FileName,
                     FilePath = filePath,
@@ -49,6 +54,7 @@ namespace DocumentLoader.API.Controllers
                 };
 
                 await _repository.AddAsync(document);
+                await _publisher.PublishDocumentUploadedAsync(document);
 
                 var fileUrl = $"/uploads/{file.FileName}";
                 return Created(fileUrl, new { document.Id, document.FileName, Url = fileUrl });
@@ -82,7 +88,7 @@ namespace DocumentLoader.API.Controllers
 
         // delete object from database
         [HttpDelete("delete")]
-        public async Task<IActionResult> Delete([FromQuery]int? document_id)
+        public IActionResult Delete([FromQuery] int? document_id)
         {
             if (document_id == null)
                 return BadRequest("No Document ID provided");
@@ -94,7 +100,7 @@ namespace DocumentLoader.API.Controllers
             {
                 return BadRequest("Provided Document ID could not be converted to Integer");
             }
-            
+
 
             // Todo: Delete document with corresponding document_id from db
 
@@ -103,12 +109,12 @@ namespace DocumentLoader.API.Controllers
         public class UpdateDocumentDto
         {
             public int DocumentId { get; set; }
-            public string Content { get; set; }
+            public required string Content { get; set; }
         }
 
         // update object from database
         [HttpPut("update")]
-        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
+        public IActionResult Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
