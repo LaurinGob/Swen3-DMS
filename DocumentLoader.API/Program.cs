@@ -1,3 +1,4 @@
+using DocumentLoader.API.Messaging;
 using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<DocumentDbContext>(options =>
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 
 // Add controllers and Swagger
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

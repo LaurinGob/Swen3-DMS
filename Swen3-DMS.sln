@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.UnitTests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMq", "RabbitMq\RabbitMq.csproj", "{7E07D618-0BF8-4F57-9F4B-89B750248890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.OCRWorker", "DocumentLoader.OCRWorker\DocumentLoader.OCRWorker.csproj", "{1FAC4BF8-D374-8608-8DF5-F2EA4AA8B7C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{7E07D618-0BF8-4F57-9F4B-89B750248890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E07D618-0BF8-4F57-9F4B-89B750248890}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E07D618-0BF8-4F57-9F4B-89B750248890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FAC4BF8-D374-8608-8DF5-F2EA4AA8B7C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FAC4BF8-D374-8608-8DF5-F2EA4AA8B7C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FAC4BF8-D374-8608-8DF5-F2EA4AA8B7C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FAC4BF8-D374-8608-8DF5-F2EA4AA8B7C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
