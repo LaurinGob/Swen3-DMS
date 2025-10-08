@@ -34,6 +34,9 @@ export function initUpload() {
                 console.log('JSON data:', data);
                 return data; // returns JS object
             } else {
+                const error = await response.json();
+                console.error("Backend error:", error);
+                throw new Error(error.details || error.error || "Unknown error");
                 feedback.innerText = "Upload failed!";
                 feedback.style.color = "#9A8AAB";
             }
