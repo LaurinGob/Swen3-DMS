@@ -1,4 +1,5 @@
-﻿const API_BASE = "/api/documents"; // works if nginx proxies /api to backend
+﻿//const API_BASE = "http://localhost:5000/api/Documents"
+const API_BASE = "/api/Documents"; // works if nginx proxies /api to backend
 
 // ---------------- Upload ----------------
 export function initUpload() {
@@ -29,6 +30,9 @@ export function initUpload() {
                 feedback.style.color = "#EDED68";
                 fileInput.value = ""; // reset input
                 loadAllDocuments(); // refresh table
+                const data = await res.json();
+                console.log('JSON data:', data);
+                return data; // returns JS object
             } else {
                 feedback.innerText = "Upload failed!";
                 feedback.style.color = "#9A8AAB";
