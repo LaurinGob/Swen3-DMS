@@ -6,16 +6,18 @@ services:
     build:
       context: .
       dockerfile: DocumentLoader.API/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:5000;https://+:5001
+    ports:
+      - "5000:5000"
+      - "5001:5001"
     expose:
-      - "80"
+      - "5000"
+      - "5001"
     depends_on:
       - db
-      - rabbitmq
-    environment:
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__User=guest
-      - RabbitMQ__Password=guest
+    networks:
+      - appnet
 
   db:
     image: postgres:16
@@ -56,6 +58,8 @@ services:
         - RabbitMQ__User=myuser
         - RabbitMQ__Password=mypassword
 
+    networks:
+      - appnet
 
   ui:
     image: nginx:latest
@@ -63,10 +67,16 @@ services:
       - ./DocumentLoader.WebUI:/usr/share/nginx/html:ro
       - ./DocumentLoader.WebUI/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
     depends_on:
       - documentloader.api
+    networks:
+      - appnet
 
 volumes:
   rabbitmq_data:
 
+networks:
+  appnet:
+    driver: bridge
