@@ -27,20 +27,21 @@ export function initUpload() {
 
             if (res.ok) {
                 feedback.innerText = "Upload successful!";
-                feedback.style.color = "#EDED68";
+                feedback.style.color = "#9A8AAB";
                 fileInput.value = ""; // reset input
                 loadAllDocuments(); // refresh table
                 const data = await res.json();
                 console.log('JSON data:', data);
                 return data; // returns JS object
             } else {
-                const error = await response.json();
-                console.error("Backend error:", error);
+                const error = await res.json();
+                console.log("Backend error:", error);
                 throw new Error(error.details || error.error || "Unknown error");
                 feedback.innerText = "Upload failed!";
                 feedback.style.color = "#9A8AAB";
             }
         } catch (err) {
+            console.log(err)
             feedback.innerText = "Error uploading file.";
             feedback.style.color = "#5D4F6B";
         }
@@ -66,6 +67,7 @@ async function loadAllDocuments(query = "") {
 
     try {
         const res = await fetch(`${API_BASE}/search?query=${encodeURIComponent(query)}`);
+        console.log(res);
         const data = await res.json();
         tableBody.innerHTML = "";
 
@@ -112,6 +114,7 @@ async function loadAllDocuments(query = "") {
         });
 
     } catch (err) {
+        console.log(err);
         tableBody.innerHTML = "<tr><td colspan='3'>Error loading documents.</td></tr>";
     }
 }
@@ -154,7 +157,7 @@ export function initDetails() {
 
         if (res.ok) {
             feedback.innerText = "Update successful!";
-            feedback.style.color = "#EDED68";
+            feedback.style.color = "#9A8AAB";
         } else {
             feedback.innerText = "Update failed.";
             feedback.style.color = "#9A8AAB";
