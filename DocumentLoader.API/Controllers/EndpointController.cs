@@ -23,10 +23,11 @@ namespace DocumentLoader.API.Controllers
 
         // Upload endpoint
         [HttpPost("upload")]
+        [RequestSizeLimit(100_000_000)]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded.");
+                return Ok("No file provided.");
 
             var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
             if (!Directory.Exists(uploadPath))
@@ -54,26 +55,29 @@ namespace DocumentLoader.API.Controllers
                 };
 
                 await _repository.AddAsync(document);
-                await _publisher.PublishDocumentUploadedAsync(document);
+                //await _publisher.PublishDocumentUploadedAsync(document);
 
                 var fileUrl = $"/uploads/{file.FileName}";
                 return Created(fileUrl, new { document.Id, document.FileName, Url = fileUrl });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string query)
+        public async Task<IActionResult> Search([FromQuery] string? query)
         {
-            if (string.IsNullOrWhiteSpace(query))
-                return BadRequest("Search query cannot be empty."); //TODO: DAL get every datapoint
+
 
             // Simple search: return all documents where FileName or Summary contains the query
             var allDocs = await _repository.GetAllAsync();
+
+            if (string.IsNullOrWhiteSpace(query))
+                return Ok(new { Results = allDocs }); //TODO: DAL get every datapoint
+
             var results = allDocs
                 .Where(d => d.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
                          || d.Summary.Contains(query, StringComparison.OrdinalIgnoreCase))
