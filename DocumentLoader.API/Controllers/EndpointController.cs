@@ -1,8 +1,11 @@
-﻿using DocumentLoader.API.Messaging;
-using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
+using DocumentLoader.RabbitMQ;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Minio;
+using Minio.DataModel.Args;
+using System.IO;
 using System.Reflection.Metadata;
 
 
@@ -13,58 +16,66 @@ namespace DocumentLoader.API.Controllers
     public class DocumentsController : ControllerBase
     {
         private readonly IDocumentRepository _repository;
-        private readonly IRabbitMqPublisher _publisher;
+        private readonly IMinioClient _minioClient;
+        private const string BucketName = "uploads";
 
-        public DocumentsController(IDocumentRepository repository, IRabbitMqPublisher publisher)
+        public DocumentsController(IDocumentRepository repository)
         {
             _repository = repository;
-            _publisher = publisher;
+            _minioClient = new MinioClient()
+                .WithEndpoint("minio", 9000)
+                .WithCredentials("minioadmin", "minioadmin")
+                .WithSSL(false)
+                .Build();
         }
 
-        // Upload endpoint
         [HttpPost("upload")]
         [RequestSizeLimit(100_000_000)]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload(IFormFile file, [FromServices] Minio.MinioClient minioClient)
         {
             if (file == null || file.Length == 0)
-                return Ok("No file provided.");
+                return BadRequest("No file provided.");
 
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-            if (!Directory.Exists(uploadPath))
-            {
-                Directory.CreateDirectory(uploadPath);
-            }
-
-            var filePath = Path.Combine(uploadPath, file.FileName);
 
             try
             {
-                // Save file to disk
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                // Ensure bucket exists
+                bool exists = await minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
+                if (!exists)
                 {
-                    await file.CopyToAsync(stream);
+                    await minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
                 }
+
+                // Upload file to MinIO
+                using var fileStream = file.OpenReadStream();
+
+                await _minioClient.PutObjectAsync(new PutObjectArgs()
+                .WithBucket(BucketName)
+                .WithObject(file.FileName)
+                .WithStreamData(fileStream)
+                .WithObjectSize(file.Length));
 
                 // Save metadata to database
                 var document = new Models.Document
                 {
                     FileName = file.FileName,
-                    FilePath = filePath,
+                    FilePath = $"minio://{BucketName}/{file.FileName}",
                     UploadedAt = DateTime.UtcNow,
-                    Summary = "" // optional: can fill after OCR later
+                    Summary = ""
                 };
-
                 await _repository.AddAsync(document);
-                //await _publisher.PublishDocumentUploadedAsync(document);
 
-                var fileUrl = $"/uploads/{file.FileName}";
-                return Created(fileUrl, new { document.Id, document.FileName, Url = fileUrl });
+                // Publish to OCR queue
+                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, document.FilePath);
+
+                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
+
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]

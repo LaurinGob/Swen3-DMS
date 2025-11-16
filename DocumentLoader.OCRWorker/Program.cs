@@ -1,16 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using DocumentLoader.OCRWorker.Services;
 
-Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
-    {
-        services.AddHostedService<OcrWorkerService>();
-    })
-    .ConfigureLogging(logging =>
-    {
-        logging.ClearProviders();
-        logging.AddConsole();
-    })
-    .Build()
-    .Run();
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddHostedService<OcrWorkerService>();
+
+var app = builder.Build();
+app.Run();
