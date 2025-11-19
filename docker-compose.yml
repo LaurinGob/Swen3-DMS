@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   documentloader.api:
     image: ${DOCKER_REGISTRY-}documentloaderapi
@@ -29,6 +27,8 @@ services:
       LC_ALL: en_US.utf8
     ports:
       - "5432:5432"
+    networks:
+      - appnet
 
   rabbitmq:
       image: rabbitmq:3.12-management
@@ -57,9 +57,8 @@ services:
         - RabbitMQ__Host=rabbitmq
         - RabbitMQ__User=myuser
         - RabbitMQ__Password=mypassword
-
-    networks:
-      - appnet
+      networks:
+        - appnet
 
   ui:
     image: nginx:latest
