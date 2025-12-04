@@ -34,7 +34,7 @@ builder.Services.AddSingleton<MinioClient>(sp =>
     var accessKey = builder.Configuration["Minio:AccessKey"] ?? "minioadmin";
     var secretKey = builder.Configuration["Minio:SecretKey"] ?? "minioadmin";
 
-    return new MinioClient()
+    return (MinioClient)new MinioClient()
         .WithEndpoint(endpoint)
         .WithCredentials(accessKey, secretKey)
         .Build();
