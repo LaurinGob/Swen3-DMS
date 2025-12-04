@@ -7,6 +7,7 @@ using Minio;
 using Minio.DataModel.Args;
 using System.IO;
 using System.Reflection.Metadata;
+using System.Text.Json;
 
 
 namespace DocumentLoader.API.Controllers
@@ -65,8 +66,14 @@ namespace DocumentLoader.API.Controllers
                 };
                 await _repository.AddAsync(document);
 
-                // Publish to OCR queue
-                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, document.FilePath);
+                var job = new OcrJob
+                {
+                    Bucket = BucketName,
+                    ObjectName = file.FileName
+                };
+
+                // Serialize and publish
+                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
                 return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
             }
