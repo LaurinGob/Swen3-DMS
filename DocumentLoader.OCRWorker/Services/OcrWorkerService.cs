@@ -22,7 +22,7 @@ namespace DocumentLoader.OCRWorker.Services
             _minio = minio;
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             RabbitMqSubscriber.Instance.Subscribe(
                 RabbitMqQueues.OCR_QUEUE,
@@ -53,7 +53,15 @@ namespace DocumentLoader.OCRWorker.Services
                     }
                 });
 
-            return Task.CompletedTask;
+            // Keep the worker process alive
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // normal on shutdown
+            }
         }
 
         private async Task<string> ProcessDocumentAsync(OcrJob job)
@@ -87,12 +95,17 @@ namespace DocumentLoader.OCRWorker.Services
             if (proc.ExitCode != 0)
                 throw new Exception($"pdftoppm failed: {stderr}");
 
-            var images = Directory.GetFiles("/tmp", "page-*.jpg");
+            var prefixName = Path.GetFileName(outputPrefix);
+            var images = Directory.GetFiles("/tmp", $"{prefixName}-*.jpg");
+
             if (images.Length == 0)
                 throw new Exception("Poppler produced no images.");
 
             var sb = new StringBuilder();
-            using var engine = new TesseractEngine("/usr/share/tessdata", "eng", EngineMode.Default);
+            var tessdata = Environment.GetEnvironmentVariable("TESSDATA_PREFIX")
+              ?? "/usr/share/tesseract-ocr/5/tessdata/";
+            using var engine = new TesseractEngine(tessdata, "eng", EngineMode.Default);
+
 
             foreach (var imgPath in images.OrderBy(p => p))
             {

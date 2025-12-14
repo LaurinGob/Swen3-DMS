@@ -15,8 +15,12 @@ services:
       - "5000:5000"
       - "5001:5001"
     depends_on:
-      - db
-      - minio
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
     networks:
       - appnet
 
@@ -67,11 +71,14 @@ services:
 
   ocrworker:
     build:
-      context: ./DocumentLoader.OCRWorker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: DocumentLoader.OCRWorker/Dockerfile
+      no_cache: true
     depends_on:
-      - rabbitmq
-      - minio
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
     environment:
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__User=myuser
