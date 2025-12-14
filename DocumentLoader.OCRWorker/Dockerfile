@@ -13,6 +13,7 @@ RUN apt-get update && \
         libtesseract5 \
         ca-certificates \
         libc6-dev \
+        procps \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /lib/x86_64-linux-gnu/libdl.so

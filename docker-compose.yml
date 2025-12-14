@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   documentloader.api:
     image: ${DOCKER_REGISTRY-}documentloaderapi
@@ -116,6 +114,30 @@ services:
       - documentloader.api
     networks:
       - appnet
+
+  genai:
+    build:
+      context: .
+      dockerfile: DocumentLoader.GenAIWorker/Dockerfile
+      no_cache: true
+    container_name: genai
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}   # use .env file for your API key
+      - RABBITMQ__Host=rabbitmq
+      - RABBITMQ__User=myuser
+      - RABBITMQ__Password=mypassword
+      - DB__Host=db
+      - DB__User=myuser
+      - DB__Password=mypassword
+      - DB__Name=mydatabase
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+    networks:
+      - appnet
+
 
 volumes:
   postgres_data:

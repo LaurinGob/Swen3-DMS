@@ -83,7 +83,7 @@ namespace DocumentLoader.OCRWorker.Services
             var psi = new ProcessStartInfo
             {
                 FileName = "pdftoppm",
-                Arguments = $"{localPdf} {outputPrefix} -jpeg",
+                Arguments = $"{localPdf} {outputPrefix} -r 300 -png",
                 RedirectStandardError = true,
                 RedirectStandardOutput = true
             };
@@ -96,7 +96,10 @@ namespace DocumentLoader.OCRWorker.Services
                 throw new Exception($"pdftoppm failed: {stderr}");
 
             var prefixName = Path.GetFileName(outputPrefix);
-            var images = Directory.GetFiles("/tmp", $"{prefixName}-*.jpg");
+            var images = Directory.GetFiles("/tmp", $"{prefixName}-*.*")
+                .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg"))
+                .OrderBy(f => f)
+                .ToArray();
 
             if (images.Length == 0)
                 throw new Exception("Poppler produced no images.");
@@ -104,8 +107,10 @@ namespace DocumentLoader.OCRWorker.Services
             var sb = new StringBuilder();
             var tessdata = Environment.GetEnvironmentVariable("TESSDATA_PREFIX")
               ?? "/usr/share/tesseract-ocr/5/tessdata/";
-            using var engine = new TesseractEngine(tessdata, "eng", EngineMode.Default);
+           
+            using var engine = new TesseractEngine(tessdata, "eng+osd", EngineMode.LstmOnly);
 
+            engine.DefaultPageSegMode = PageSegMode.Auto;
 
             foreach (var imgPath in images.OrderBy(p => p))
             {
@@ -123,15 +128,30 @@ namespace DocumentLoader.OCRWorker.Services
             }
             catch { /* ignore cleanup failures */ }
 
+            _logger.LogInformation("OCR text processed. Content: " + sb.ToString().Substring(0, Math.Min(200, sb.Length)) + "...");
             return sb.ToString();
         }
 
+
+
         private Task PrepareForGeminiAsync(OcrJob job, string ocrText)
         {
-            // TODO: implement your integration
-            // e.g., save to database, queue, or call Gemini API
-            _logger.LogInformation($"[OCRWorker] Ready to send OCR text for Gemini API. Length={ocrText.Length}");
+            var result = new OcrResult
+            {
+                Bucket = job.Bucket,
+                ObjectName = job.ObjectName,
+                OcrText = ocrText
+            };
+
+            string json = JsonSerializer.Serialize(result);
+
+            // Publish to the queue your GenAI worker listens to
+            RabbitMqPublisher.Instance.Publish(RabbitMqQueues.RESULT_QUEUE, json);
+
+            _logger.LogInformation($"[OCRWorker] Published OCR result for {job.ObjectName} to RESULT_QUEUE. Length={ocrText.Length}");
+
             return Task.CompletedTask;
         }
+
     }
 }
