@@ -6,8 +6,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-
-
 namespace DocumentLoader.GenAIWorker
 {
     public class GenAIWorkerService : BackgroundService
@@ -34,28 +32,44 @@ namespace DocumentLoader.GenAIWorker
 
                     {ocrResult.OcrText}";
 
-                    string summary = await _gemini.SendPromptAsync(prompt);
-                    _logger.LogInformation("Generated summary: {summary}", summary);
+                    string summary = "";
+
+                    try
+                    {
+                        summary = await _gemini.SendPromptAsync(prompt, maxRetries: 5);
+                        if (string.IsNullOrWhiteSpace(summary))
+                        {
+                            _logger.LogWarning("[GenAIWorker] Gemini returned empty summary for {doc}", ocrResult.ObjectName);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("[GenAIWorker] Generated summary for {doc}: {summary}", ocrResult.ObjectName, summary);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[GenAIWorker] Summary generation failed for {doc}", ocrResult.ObjectName);
+                        return;
+                    }
 
                     var summaryResult = new SummaryResult
                     {
                         DocumentId = ocrResult.DocumentId,
+                        UploadedAt = ocrResult.UploadedAt,
                         ObjectName = ocrResult.ObjectName,
                         SummaryText = summary
                     };
 
-                    // TODO: save summary to DB or publish another queue
+                    // Publish to summary queue
                     RabbitMqPublisher.Instance.Publish(
                         RabbitMqQueues.SUMMARY_QUEUE,
                         JsonSerializer.Serialize(summaryResult)
                     );
 
-                    _logger.LogInformation("Published summary to SUMMARY_QUEUE for {doc}", ocrResult.ObjectName);
+                    _logger.LogInformation("[GenAIWorker] Published summary to SUMMARY_QUEUE for {doc}", ocrResult.ObjectName);
                 });
 
             return Task.CompletedTask;
         }
-
-
     }
 }

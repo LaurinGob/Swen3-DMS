@@ -50,7 +50,7 @@ builder.Services.AddSwaggerGen();
 // -------------------------------
 // Background service for Result_Queue
 // -------------------------------
-builder.Services.AddHostedService<ResultQueueSubscriber>();
+builder.Services.AddHostedService<SummaryQueueSubscriber>();
 
 // -------------------------------
 // CORS

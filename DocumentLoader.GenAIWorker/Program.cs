@@ -1,12 +1,21 @@
 ﻿using DocumentLoader.GenAIWorker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
-        services.AddSingleton<GeminiService>();          // the API wrapper
-        services.AddHostedService<GenAIWorkerService>(); // the worker
+        // Register GeminiService with logger injection
+        services.AddSingleton<GeminiService>(sp =>
+            new GeminiService(sp.GetRequiredService<ILogger<GeminiService>>()));
+
+        services.AddHostedService<GenAIWorkerService>();
+    })
+    .ConfigureLogging(logging =>
+    {
+        logging.ClearProviders();
+        logging.AddConsole();
     })
     .Build()
     .Run();

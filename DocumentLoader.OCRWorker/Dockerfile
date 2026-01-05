@@ -9,6 +9,7 @@ RUN apt-get update && \
         poppler-utils \
         tesseract-ocr \
         tesseract-ocr-eng \
+        tesseract-ocr-deu \
         liblept5 \
         libtesseract5 \
         ca-certificates \

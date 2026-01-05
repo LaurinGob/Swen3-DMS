@@ -37,7 +37,7 @@ namespace DocumentLoader.OCRWorker.Services
                             return;
                         }
 
-                        _logger.LogInformation($"[OCRWorker] Processing object: bucket={job.Bucket}, object={job.ObjectName}");
+                        _logger.LogInformation($"[OCRWorker] Processing object:  documentId={job.DocumentId}, bucket={job.Bucket}, object={job.ObjectName}");
 
                         // Perform OCR
                         string ocrText = await ProcessDocumentAsync(job);
@@ -108,7 +108,7 @@ namespace DocumentLoader.OCRWorker.Services
             var tessdata = Environment.GetEnvironmentVariable("TESSDATA_PREFIX")
               ?? "/usr/share/tesseract-ocr/5/tessdata/";
            
-            using var engine = new TesseractEngine(tessdata, "eng+osd", EngineMode.LstmOnly);
+            using var engine = new TesseractEngine(tessdata, "deu+eng", EngineMode.LstmOnly);
 
             engine.DefaultPageSegMode = PageSegMode.Auto;
 
@@ -138,6 +138,7 @@ namespace DocumentLoader.OCRWorker.Services
         {
             var result = new OcrResult
             {
+                DocumentId = job.DocumentId,
                 Bucket = job.Bucket,
                 ObjectName = job.ObjectName,
                 OcrText = ocrText

@@ -68,6 +68,8 @@ namespace DocumentLoader.API.Controllers
 
                 var job = new OcrJob
                 {
+                    DocumentId = document.Id,
+                    UploadedAt = document.UploadedAt,
                     Bucket = BucketName,
                     ObjectName = file.FileName
                 };
@@ -75,7 +77,7 @@ namespace DocumentLoader.API.Controllers
                 // Serialize and publish
                 RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
-                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
+                return Created($"/documents/{document.Id}", new { document.Id, document.UploadedAt, document.FileName, Bucket = BucketName });
             }
             catch (Exception ex)
             {
