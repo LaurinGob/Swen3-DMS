@@ -6,7 +6,6 @@ namespace DocumentLoader.DAL.Repositories
     {
         Task<Document> AddAsync(Document doc);
         Task<Document?> GetByIdAsync(int id);
-        Task<Document?> GetByIdAndDateTimeAsync(int id, DateTime dateTime);
         Task<IEnumerable<Document>> GetAllAsync();
         Task UpdateAsync(Document doc);
         Task UpdateSummaryAsync(SummaryResult summary);

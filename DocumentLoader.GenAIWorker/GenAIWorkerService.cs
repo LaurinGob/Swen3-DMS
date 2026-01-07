@@ -55,7 +55,6 @@ namespace DocumentLoader.GenAIWorker
                     var summaryResult = new SummaryResult
                     {
                         DocumentId = ocrResult.DocumentId,
-                        UploadedAt = ocrResult.UploadedAt,
                         ObjectName = ocrResult.ObjectName,
                         SummaryText = summary
                     };

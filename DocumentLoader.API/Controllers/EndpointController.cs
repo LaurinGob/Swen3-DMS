@@ -1,6 +1,7 @@
 ﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Minio;
@@ -8,6 +9,7 @@ using Minio.DataModel.Args;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 
 namespace DocumentLoader.API.Controllers
@@ -18,11 +20,13 @@ namespace DocumentLoader.API.Controllers
     {
         private readonly IDocumentRepository _repository;
         private readonly IMinioClient _minioClient;
+        private readonly ILogger _logger;
         private const string BucketName = "uploads";
 
-        public DocumentsController(IDocumentRepository repository)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository)
         {
             _repository = repository;
+            _logger = logger;
             _minioClient = new MinioClient()
                 .WithEndpoint("minio", 9000)
                 .WithCredentials("minioadmin", "minioadmin")
@@ -36,8 +40,6 @@ namespace DocumentLoader.API.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
-
-
             try
             {
                 // Ensure bucket exists
@@ -61,7 +63,6 @@ namespace DocumentLoader.API.Controllers
                 {
                     FileName = file.FileName,
                     FilePath = $"minio://{BucketName}/{file.FileName}",
-                    UploadedAt = DateTime.UtcNow,
                     Summary = ""
                 };
                 await _repository.AddAsync(document);
@@ -69,7 +70,6 @@ namespace DocumentLoader.API.Controllers
                 var job = new OcrJob
                 {
                     DocumentId = document.Id,
-                    UploadedAt = document.UploadedAt,
                     Bucket = BucketName,
                     ObjectName = file.FileName
                 };
@@ -77,7 +77,7 @@ namespace DocumentLoader.API.Controllers
                 // Serialize and publish
                 RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
-                return Created($"/documents/{document.Id}", new { document.Id, document.UploadedAt, document.FileName, Bucket = BucketName });
+                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
             }
             catch (Exception ex)
             {
@@ -96,7 +96,7 @@ namespace DocumentLoader.API.Controllers
             var allDocs = await _repository.GetAllAsync();
 
             if (string.IsNullOrWhiteSpace(query))
-                return Ok(new { Results = allDocs }); //TODO: DAL get every datapoint
+                return Ok(new { results = allDocs }); //TODO: DAL get every datapoint
 
             var results = allDocs
                 .Where(d => d.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
@@ -112,24 +112,23 @@ namespace DocumentLoader.API.Controllers
 
         // delete object from database
         [HttpDelete("delete")]
-        public IActionResult Delete([FromQuery] int? document_id)
+        public async Task<IActionResult> Delete([FromQuery] int? document_id)
         {
             if (document_id == null)
                 return BadRequest("No Document ID provided");
             try
             {
                 int id = (int)document_id;
+                await _repository.DeleteAsync(id);
+                return Ok("Document with the provided id " + document_id + " has been deleted");
             }
-            catch
+            catch(Exception ex)
             {
-                return BadRequest("Provided Document ID could not be converted to Integer");
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}, Document could not be deleted" });
             }
 
-
-            // Todo: Delete document with corresponding document_id from db
-
-            return Ok("Document with the provided id " + document_id + " has been deleted");
         }
+
         public class UpdateDocumentDto
         {
             public int DocumentId { get; set; }
@@ -147,9 +146,56 @@ namespace DocumentLoader.API.Controllers
             return Ok($"Document with ID {dto.DocumentId} has been updated");
 
 
-            // Todo: Update document with corresponding document_id from db
+        }
 
-            //return Ok("Document with the provided id " + dto.DocumentId + " has been updated");
+        [HttpPost("{documentId}/summaries")]
+        public async Task<IActionResult> GenerateSummary(int documentId)
+        {
+            var doc = await _repository.GetByIdAsync(documentId);
+            if (doc == null)
+                return NotFound($"Document with ID {documentId} not found.");
+
+            if (!string.IsNullOrWhiteSpace(doc.Summary))
+                return BadRequest("Document already has a summary.");
+
+            var job = new OcrJob
+            {
+                DocumentId = doc.Id,
+                Bucket = "uploads",
+                ObjectName = doc.FileName
+            };
+
+            RabbitMqPublisher.Instance.Publish(
+                RabbitMqQueues.OCR_QUEUE,
+                JsonSerializer.Serialize(job)
+            );
+
+            return Accepted(new
+            {
+                message = "Summary generation triggered.",
+                documentId = doc.Id
+            });
+        }
+
+
+        [HttpGet("{documentId}")]
+
+        public async Task<IActionResult> GetById(int documentId)
+        {
+            var doc = await _repository.GetByIdAsync(documentId);
+
+            if (doc == null)
+                return NotFound();
+
+           _logger.LogDebug(doc.Id, doc.FileName, doc.Summary);
+
+            return Ok(new
+            {
+                id = doc.Id,
+                fileName = doc.FileName,
+                summary = doc.Summary
+            });
+
         }
     }
 }

@@ -34,11 +34,6 @@ namespace DocumentLoader.DAL.Repositories
             }
         }
 
-        public async Task<Document?> GetByIdAndDateTimeAsync(int id, DateTime uploadedAt)
-        {
-            return await _context.Documents
-                .FirstOrDefaultAsync(d => d.Id == id && d.UploadedAt == uploadedAt);
-        }
         public async Task<IEnumerable<Document>> GetAllAsync()
         {
             return await _context.Documents.ToListAsync();
@@ -58,8 +53,7 @@ namespace DocumentLoader.DAL.Repositories
         public async Task UpdateSummaryAsync(SummaryResult summary)
         {
             var doc = await _context.Documents
-                .FirstOrDefaultAsync(d => d.Id == summary.DocumentId
-                                       && d.UploadedAt == summary.UploadedAt);
+                .FirstOrDefaultAsync(d => d.Id == summary.DocumentId);
 
             if (doc != null)
             {
