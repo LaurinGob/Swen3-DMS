@@ -137,12 +137,17 @@ namespace DocumentLoader.API.Controllers
 
         // update object from database
         [HttpPut("update")]
-        public IActionResult Update([FromBody] UpdateDocumentDto dto)
+        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
 
-            // Update document in DB
+            await _repository.UpdateAsync(new Models.Document
+            {
+                Id = dto.DocumentId,
+                Summary = dto.Content
+            });
+
             return Ok($"Document with ID {dto.DocumentId} has been updated");
 
 
@@ -193,7 +198,8 @@ namespace DocumentLoader.API.Controllers
             {
                 id = doc.Id,
                 fileName = doc.FileName,
-                summary = doc.Summary
+                summary = doc.Summary,
+                uploadedAr = doc.UploadedAt
             });
 
         }

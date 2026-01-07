@@ -134,6 +134,8 @@ export function initDetails() {
     const deleteBtn = document.getElementById("delete-btn");
     const summaryEl = document.getElementById("doc-summary");
     const statusEl = document.getElementById("status");
+    const uploadedAtEl = document.getElementById("uploaded-at");
+
 
     async function loadDetails() {
         try {
@@ -148,6 +150,14 @@ export function initDetails() {
 
             titleEl.innerText = doc.fileName;
             summaryEl.value = doc.summary ?? "";
+
+            if (doc.uploadedAt) {
+                const date = new Date(doc.uploadedAt);
+                uploadedAtEl.innerText = date.toLocaleString();
+            }
+            else {
+                uploadedAtEl.innerText = "Unknown";
+            }
         } catch (err) {
             console.error(err);
             titleEl.innerText = "Error loading document";
@@ -157,8 +167,8 @@ export function initDetails() {
     updateBtn.addEventListener("click", async () => {
         const content = summaryEl.value.trim();
         if (!content) {
-            feedback.innerText = "Summary cannot be empty.";
-            feedback.style.color = "#B684EB";
+            statusEl.innerText = "Summary cannot be empty.";
+            statusEl.style.color = "#B684EB";
             return;
         }
 
@@ -169,11 +179,11 @@ export function initDetails() {
         });
 
         if (res.ok) {
-            feedback.innerText = "Update successful!";
-            feedback.style.color = "#9A8AAB";
+            statusEl.innerText = "Update successful!";
+            statusEl.style.color = "#9A8AAB";
         } else {
-            feedback.innerText = "Update failed.";
-            feedback.style.color = "#9A8AAB";
+            statusEl.innerText = "Update failed.";
+            statusEl.style.color = "#9A8AAB";
         }
     });
 
@@ -216,7 +226,6 @@ export function initDetails() {
     });
 
     deleteBtn.addEventListener("click", async () => {
-        console.log("hier2");
 
         if (!confirm("Are you sure you want to delete this document?")) return;
         const res = await fetch(`${API_BASE}/delete?document_id=${id}`, { method: "DELETE" });
