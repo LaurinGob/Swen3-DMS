@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DocumentLoader.DAL\DocumentLoader.DAL.csproj" />
     <ProjectReference Include="..\DocumentLoader.RabbitMQ\DocumentLoader.RabbitMQ.csproj" />
+    <ProjectReference Include="..\DocumentLoader.OCRWorker\DocumentLoader.OCRWorker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

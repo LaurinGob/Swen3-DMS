@@ -1,8 +1,6 @@
 ﻿//const API_BASE = "http://localhost:5000/api/Documents"
 const API_BASE = "/api/Documents"; // works if nginx proxies /api to backend
 
-console.log("hier");
-
 // ---------------- Upload ----------------
 export function initUpload() {
     const form = document.getElementById("upload-form");

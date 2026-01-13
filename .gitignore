@@ -398,11 +398,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-#environment variables Gemini
 *.env
-
-#OCR results
-
-OcrResult/
-
-/OcrResults/11
+/OcrResults/

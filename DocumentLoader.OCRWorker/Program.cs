@@ -3,6 +3,9 @@ using Minio;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 // Register MinIO client as a singleton
 builder.Services.AddSingleton<IMinioClient>(sp =>
     new MinioClient()
