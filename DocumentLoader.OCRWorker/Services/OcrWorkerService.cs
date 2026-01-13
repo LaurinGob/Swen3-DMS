@@ -2,6 +2,7 @@
 using DocumentLoader.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Minio;
 using Minio.DataModel.Args;
 using System.Diagnostics;
@@ -15,11 +16,14 @@ namespace DocumentLoader.OCRWorker.Services
     {
         private readonly ILogger<OcrWorkerService> _logger;
         private readonly IMinioClient _minio;
+        private readonly IConfiguration _configuration;
 
-        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio)
+
+        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio, IConfiguration configuration)
         {
             _logger = logger;
             _minio = minio;
+            _configuration = configuration;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -136,6 +140,10 @@ namespace DocumentLoader.OCRWorker.Services
 
         private Task PrepareForGeminiAsync(OcrJob job, string ocrText)
         {
+
+            SaveOcrToFile(job, ocrText);
+
+
             var result = new OcrResult
             {
                 DocumentId = job.DocumentId,
@@ -153,6 +161,39 @@ namespace DocumentLoader.OCRWorker.Services
 
             return Task.CompletedTask;
         }
+
+        private void SaveOcrToFile(OcrJob job, string ocrText)
+        {
+            var basePath =
+                _configuration["OcrStorage:BasePath"]
+                ?? Path.Combine(AppContext.BaseDirectory, "OcrResults");
+
+            // Folder per document
+            var documentFolder = Path.Combine(basePath, job.DocumentId.ToString());
+
+            Directory.CreateDirectory(documentFolder);
+
+            // Safe filename
+            var safeFileName = Path.GetFileName(job.ObjectName) + ".txt";
+            var filePath = Path.Combine(documentFolder, safeFileName);
+
+            var content = $"""
+            # DocumentId: {job.DocumentId}
+            # Bucket: {job.Bucket}
+            # ObjectName: {job.ObjectName}
+            # GeneratedAt (UTC): {DateTime.UtcNow:O}
+
+            {ocrText}
+            """;
+
+            File.WriteAllText(filePath, content, Encoding.UTF8);
+
+            _logger.LogInformation(
+                "[OCRWorker] OCR text written to {Path}",
+                filePath
+            );
+        }
+
 
     }
 }
