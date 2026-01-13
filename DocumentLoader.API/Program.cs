@@ -43,6 +43,7 @@ builder.Services.AddSingleton<MinioClient>(sp =>
 // -------------------------------
 // Add controllers and Swagger
 // -------------------------------
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
