@@ -399,4 +399,4 @@ FodyWeavers.xsd
 *.sln.iml
 
 *.env
-/OcrResults/11
+/OcrResults/
