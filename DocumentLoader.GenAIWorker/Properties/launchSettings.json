@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DocumentLoader.GenAIWorker": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

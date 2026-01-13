@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>Document Details</title>
     <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="../js/app.js"></script>
+    <script type="module">
+        import { initDetails } from '../js/app.js';
+        initDetails();
+        console.log('Details page script loaded');
+    </script>
 </head>
 <body>
     <div class="container">
@@ -14,16 +20,17 @@
             <h3>Summary</h3>
             <textarea id="doc-summary" rows="5" cols="50"></textarea>
             <br>
+            <p>
+                <strong>Uploaded:</strong>
+                <span id="uploaded-at">—</span>
+            </p>
+            <br />
             <button id="update-btn">Update</button>
+            <button id="generate-summary-btn">Generate Summary</button>
             <button id="delete-btn">Delete</button>
         </div>
 
         <div id="status"></div>
     </div>
-
-    <script src="js/app.js"></script>
-    <script>
-        initDetails();
-    </script>
 </body>
 </html>

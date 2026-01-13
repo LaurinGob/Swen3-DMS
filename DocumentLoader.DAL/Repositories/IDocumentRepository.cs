@@ -5,9 +5,10 @@ namespace DocumentLoader.DAL.Repositories
     public interface IDocumentRepository
     {
         Task<Document> AddAsync(Document doc);
-        Task<Document?> GetByIdAsync(Guid id);
+        Task<Document?> GetByIdAsync(int id);
         Task<IEnumerable<Document>> GetAllAsync();
         Task UpdateAsync(Document doc);
-        Task DeleteAsync(Guid id);
+        Task UpdateSummaryAsync(SummaryResult summary);
+        Task DeleteAsync(int id);
     }
 }
