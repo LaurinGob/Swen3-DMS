@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "DocumentLoader.OCRWorker": {
+    "DocumentLoader.RabbitMQ": {
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   documentloader.api:
     image: ${DOCKER_REGISTRY-}documentloaderapi
@@ -8,14 +6,19 @@ services:
       dockerfile: DocumentLoader.API/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:5000;https://+:5001
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
     ports:
       - "5000:5000"
       - "5001:5001"
-    expose:
-      - "5000"
-      - "5001"
     depends_on:
-      - db
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
     networks:
       - appnet
 
@@ -34,35 +37,72 @@ services:
     networks:
       - appnet
 
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - appnet
+
   rabbitmq:
-      image: rabbitmq:3.12-management
-      container_name: rabbitmq
-      ports:
-        - "5672:5672"
-        - "15672:15672"
-      environment:
-        RABBITMQ_DEFAULT_USER: myuser
-        RABBITMQ_DEFAULT_PASS: mypassword
-      healthcheck:
-          test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
-          interval: 30s
-          timeout: 10s
-          retries: 5
-      volumes:
-        - rabbitmq_data:/var/lib/rabbitmq
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "9093:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: myuser
+      RABBITMQ_DEFAULT_PASS: mypassword
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - appnet
 
   ocrworker:
-      build:
-        context: ./DocumentLoader.OCRWorker
-        dockerfile: Dockerfile
-      depends_on:
-        - rabbitmq
-      environment:
-        - RabbitMQ__Host=rabbitmq
-        - RabbitMQ__User=myuser
-        - RabbitMQ__Password=mypassword
-      networks:
-        - appnet
+    build:
+      context: .
+      dockerfile: DocumentLoader.OCRWorker/Dockerfile
+      no_cache: true
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__User=myuser
+      - RabbitMQ__Password=mypassword
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    volumes:
+      - ./OcrResults:/app/OcrResults
+    networks:
+      - appnet
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - appnet
 
   ui:
     image: nginx:latest
@@ -77,9 +117,34 @@ services:
     networks:
       - appnet
 
+  genai:
+    build:
+      context: .
+      dockerfile: DocumentLoader.GenAIWorker/Dockerfile
+      no_cache: true
+    container_name: genai
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}   # use .env file for your API key
+      - RABBITMQ__Host=rabbitmq
+      - RABBITMQ__User=myuser
+      - RABBITMQ__Password=mypassword
+      - DB__Host=db
+      - DB__User=myuser
+      - DB__Password=mypassword
+      - DB__Name=mydatabase
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+    networks:
+      - appnet
+
+
 volumes:
   postgres_data:
   rabbitmq_data:
+  minio_data:
 
 networks:
   appnet:

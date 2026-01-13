@@ -1,0 +1,63 @@
+﻿# DocumentId: 31
+# Bucket: uploads
+# ObjectName: Zeugnis_BIF_4_SS2025.pdf
+# GeneratedAt (UTC): 2026-01-13T15:10:31.0401894Z
+
+ZEUGNIS
+
+es
+TECHNIKUM
+WIEN)
+
+WIEN
+
+SS2025 (4. Semester)
+
+Bachelor-Studiengang
+Informatik/Computer Science
+
+Personenkennzeichen: 2310257020
+Kennzahl des Studienganges: 0257
+
+Vorname/Familienname: Sophie Peirl, BSc
+Geburtsdatum: 04.02.1999
+
+Software Engineering 2 Labor 3.0 5.0 2
+Innovation Lab 2 2.0 3.0 3
+Requirements Engineering 1.0 2.0 4
+DevOps and Security 3.0 5.0 2
+Business English 2.0 3.0 2
+Continuous Integration 3.0 5.0 1
+Kreativität und Komplexität 1.0 2.0 1
+Aktuelle Themen der Informatik: Softwarearchitekturen 3.0 5.0 1
+Gesamt - 30 -
+Notenstufen: Sehr gut (1), Gut (2), Befriedigend (3), Genügend (4), mit Erfolg teilgenommen (met), teilgenommen (tg), angerechnet (ar), bestanden (b),
+
+erfolgreich absolviert (ea)
+
+Unterzeichner/
+Siegelersteller
+
+Fachhochschule Technikum Wien
+
+<a’ Datum/Zeit-UTC
+
+2025-11-13T14: 49:39+01:00
+
+Prufinformation
+
+‘AMTSSIGNATUR /
+
+Informationen zur Prüfung des elektronischen Siegels bzw. der
+elektronischen Signatur finden Sie unter:
+https://www.signaturpruefung.gv.at
+
+Informationen zur Prüfung des Ausdrucks finden Sie unter:
+https://www. technikum-wien.at/signatur/
+
+Hinweis Dieses Dokument wurde amtssigniert.
+
+Fachhochschule Technikum Wien, Höchstädtplatz 6, 1200 Wien ZVR 074476426
+
+Fachhochschule Technikum Wien, Höchstädtplatz 6, 1200 Wien ZVR 074476426
+
