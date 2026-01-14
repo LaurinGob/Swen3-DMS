@@ -9,6 +9,11 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     ports:
       - "5000:5000"
       - "5001:5001"
@@ -140,11 +145,31 @@ services:
     networks:
       - appnet
 
+  batchprocessor:
+    build:
+      context: .
+      dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    image:
+        documentloader-batchprocessor
+    depends_on:
+      documentloader.api:
+        condition: service_healthy
+      db:
+        condition: service_started
+    environment:
+      - API_BASE_URL=http://documentloader.api:5000
+    volumes:
+      - ./BatchInput:/app/input
+      - ./BatchArchive:/app/archive
+      - ./BatchError:/app/error
+    networks:
+      - appnet
 
 volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+
 
 networks:
   appnet:

@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DocumentLoader.API.Services;
 
 
 namespace DocumentLoader.API.Controllers
@@ -20,13 +21,15 @@ namespace DocumentLoader.API.Controllers
     {
         private readonly IDocumentRepository _repository;
         private readonly IMinioClient _minioClient;
+        private readonly IAccessLogService _service;
         private readonly ILogger _logger;
         private const string BucketName = "uploads";
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service)
         {
             _repository = repository;
             _logger = logger;
+            _service = service;
             _minioClient = new MinioClient()
                 .WithEndpoint("minio", 9000)
                 .WithCredentials("minioadmin", "minioadmin")
@@ -202,6 +205,19 @@ namespace DocumentLoader.API.Controllers
                 uploadedAr = doc.UploadedAt
             });
 
+        }
+
+
+        [HttpPost("accesses")]
+
+        public async Task<IActionResult> StoreDailyAccess(DailyAccessDto dto)
+        {
+            await _service.StoreDailyAsync(
+                dto.Date,
+                dto.DocumentId,
+                dto.AccessCount);
+
+            return Ok();
         }
     }
 }

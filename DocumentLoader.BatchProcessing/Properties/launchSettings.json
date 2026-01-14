@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DocumentLoader.BatchProcessing": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

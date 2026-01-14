@@ -23,7 +23,10 @@ builder.Services.AddDbContext<DocumentDbContext>(options =>
 // -------------------------------
 // Register repository
 // -------------------------------
+builder.Services.AddScoped<IAccessLogRepository, AccessLogRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IAccessLogService, AccessLogService>();
+
 
 // -------------------------------
 // Register MinIO client singleton
@@ -90,5 +93,12 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.UseCors("AllowFrontend");
+
+//healthcheck endpoint
+
+app.MapGet("/health", () => Results.Ok("healthy"));
+
+
+
 
 app.Run();
