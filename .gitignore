@@ -401,3 +401,4 @@ FodyWeavers.xsd
 #environment variables Gemini
 *.env
 
+/OcrResults/
