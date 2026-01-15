@@ -1,8 +1,8 @@
-﻿using DocumentLoader.BatchProcessing;
+﻿using DocumentLoader.API.Services;
+using DocumentLoader.BatchProcessing;
 using DocumentLoader.DAL;
-using DocumentLoader.Models;
 using DocumentLoader.DAL.Repositories;
-using DocumentLoader.API.Services;
+using DocumentLoader.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,12 +12,20 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 class Program
 {
     static async Task Main(string[] args)
     {
         Console.WriteLine("=== Batch Processing Demo ===");
+        
+
+        var basePath = AppContext.BaseDirectory;
+        var projectRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
+        var inputFolder = Path.Combine(projectRoot, "BatchInput");
+        var archiveFolder = Path.Combine(projectRoot, "BatchArchive");
+        var errorFolder = Path.Combine(projectRoot, "BatchError");
 
         // --- 1) Setup DI ---
         var services = new ServiceCollection();
@@ -31,16 +39,35 @@ class Program
 
         // DbContext
         services.AddDbContext<DocumentDbContext>(options =>
-            options.UseNpgsql("Your_Postgres_Connection_String"));
+            options.UseNpgsql(
+                Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection"))
+             );
+
 
         // Repository
-        services.AddScoped<IAccessLogRepository, AccessLogRepository>();
+        services.AddTransient<IAccessLogRepository, AccessLogRepository>();
+        services.AddTransient<IDocumentRepository, DocumentRepository>();
+
 
         // Batch processor
-        services.AddScoped<AccessLogBatchProcessor>();
 
-        services.AddScoped<IAccessLogService, AccessLogService>();
+        services.AddHttpClient<IAccessLogSink, AccessLogApiSink>(client =>
+        {
+            client.BaseAddress = new Uri("http://localhost:5000/"); // API base URL
+        });
+        services.AddTransient<IAccessLogService, AccessLogService>();
 
+        services.AddTransient<AccessLogBatchProcessor>(sp =>
+        {
+            return new AccessLogBatchProcessor(
+                inputFolder,
+                archiveFolder,
+                errorFolder,
+                filePattern: "access-*.xml",
+                sink: sp.GetRequiredService<IAccessLogSink>(),
+                logger: sp.GetRequiredService<ILogger<AccessLogBatchProcessor>>()
+                );
+        });
 
         // Build service provider
         var serviceProvider = services.BuildServiceProvider();
@@ -51,35 +78,21 @@ class Program
         // --- 3) Determine mode ---
         var mode = args.FirstOrDefault()?.ToLowerInvariant() ?? "run-once";
 
-        // Configure folders and file pattern
-        var basePath = AppContext.BaseDirectory;
-        var inputFolder = Path.Combine(basePath, "input");
-        var archiveFolder = Path.Combine(basePath, "archive");
-        var errorFolder = Path.Combine(basePath, "error");
-        var filePattern = "access-*.xml";
-
-        // Batch processor
-        services.AddScoped(sp =>
-        {
-            var sink = sp.GetRequiredService<IAccessLogSink>();
-            return new AccessLogBatchProcessor(
-                inputFolder,
-                archiveFolder,
-                errorFolder,
-                filePattern,
-                sink);
-        });
-
-
         switch (mode)
         {
             case "run-once":
+                Console.WriteLine("Running batch processor once...");
                 await processor.RunOnceAsync();
                 break;
 
             case "quartz":
-                var cron = "0/10 * * * * ?"; // every 10 seconds
+                Console.WriteLine("Running batch processor with Quartz scheduler...");
+                var cron = "0/10 * * * * ?"; // every 2 minutes
                 await RunQuartzAsync(processor, cron);
+                break;
+
+            case "gen":
+                GenerateSampleFiles(inputFolder);
                 break;
 
             default:
@@ -90,8 +103,77 @@ class Program
         Console.WriteLine("Batch processing finished.");
     }
 
+    private static void GenerateSampleFiles(string inputFolder)
+    {
+        Random rnd = new Random();
+
+        Directory.CreateDirectory(inputFolder);
+
+        Console.WriteLine("Generating sample XML files into:");
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        // 1) create 3 VALID batch files
+        for (int i = 0; i < 3; i++)
+        {
+            var batchDate = today.AddDays(-i); // today, yesterday, the day before
+
+            // Use a timestamp to make each file name unique, so files in the archive
+            // are not overwritten when we generate again.
+            var fileName = $"access-{batchDate:yyyy-MM-dd}.xml";
+            var fullPath = Path.Combine(inputFolder, fileName);
+
+            // Create some fake entries
+            var fakeEntries = Enumerable.Range(1, 5).Select(n => new
+            {
+                // Use integers because your Processor uses int.TryParse
+                DocumentId = 1000 + n + (i * 10),
+                AccessCount = rnd.Next(1, 50)
+            }).ToList();
+
+            // Build the XML document (valid format)
+            var xdoc = new XDocument(
+               new XElement("batch",
+                   new XAttribute("batchDate", batchDate.ToString("yyyy-MM-dd")),
+                   new XElement("entry", new XAttribute("documentId", i), new XAttribute("accessCount", 10 * i)),
+                   new XElement("entry", new XAttribute("documentId", i + 100), new XAttribute("accessCount", 5))
+               )
+           );
+
+            xdoc.Save(fullPath);
+            Console.WriteLine($"Created VALID file: {fileName}");
+        }
+
+        // 2) create ONE INVALID file on purpose to demonstrate error handling
+        var invalidStamp = DateTime.Today.ToString("HHmmssfff");
+        var invalidName = $"demo-invalid-{invalidStamp}.xml";
+        var invalidPath = Path.Combine(inputFolder, invalidName);
+
+        // This XML violates multiple validation rules:
+        // - batchDate is not a valid date
+        // - documentId is not a GUID
+        // - accessCount is not an integer
+        var invalidXml = new XDocument(
+            new XElement("accessLogBatch",
+                new XAttribute("batchDate", "NOT-A-DATE"),
+                new XElement("entry",
+                    new XAttribute("documentId", "NOT-A-GUID"),
+                    new XAttribute("accessCount", "abc")
+                )
+            )
+        );
+
+        invalidXml.Save(invalidPath);
+        Console.WriteLine($"Created INVALID file (should go to error): {invalidName}");
+
+        Console.WriteLine();
+        Console.WriteLine("Sample files generated.");
+    }
+
     private static async Task RunQuartzAsync(AccessLogBatchProcessor processor, string cronExpression)
     {
+
+        Console.WriteLine("Starting Quartz scheduler...");
         StdSchedulerFactory factory = new StdSchedulerFactory();
         var scheduler = await factory.GetScheduler();
 

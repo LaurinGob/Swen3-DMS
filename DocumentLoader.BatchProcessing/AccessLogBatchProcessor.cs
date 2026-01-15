@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Quartz.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+
 
 namespace DocumentLoader.BatchProcessing
 {
@@ -14,6 +17,7 @@ namespace DocumentLoader.BatchProcessing
         private readonly string _errorFolder;
         private readonly string _filePattern;
         private readonly IAccessLogSink _sink;
+        private readonly ILogger _logger;
 
         private record AccessEntry(int DocumentId, int AccessCount);
 
@@ -22,13 +26,15 @@ namespace DocumentLoader.BatchProcessing
             string archiveFolder,
             string errorFolder,
             string filePattern,
-            IAccessLogSink sink)
+            IAccessLogSink sink,
+            ILogger logger)
         {
             _inputFolder = inputFolder;
             _archiveFolder = archiveFolder;
             _errorFolder = errorFolder;
             _filePattern = filePattern;
             _sink = sink;
+            _logger = logger;
         }
 
         public async Task RunOnceAsync()
@@ -36,6 +42,7 @@ namespace DocumentLoader.BatchProcessing
             Directory.CreateDirectory(_inputFolder);
             Directory.CreateDirectory(_archiveFolder);
             Directory.CreateDirectory(_errorFolder);
+            _logger.LogInformation("Starting batch processing...");
 
             var files = Directory.GetFiles(_inputFolder, _filePattern)
                 .OrderBy(f => f)
@@ -43,11 +50,13 @@ namespace DocumentLoader.BatchProcessing
 
             if (files.Count == 0)
             {
+                _logger.LogInformation("No files to process.");
                 return;
             }
 
             foreach (var file in files)
             {
+                _logger.LogInformation($"Processing file: {Path.GetFileName(file)}");
                 await ProcessSingleFileAsync(file);
             }
         }
@@ -59,12 +68,14 @@ namespace DocumentLoader.BatchProcessing
             try
             {
                 var (batchDate, entries) = ReadXml(path);
+                _logger.LogInformation(
+                    $"Read {entries.Count} entries for batch date {batchDate}.");
 
                 foreach (var entry in entries)
                 {
                     await _sink.StoreDailyAccessAsync(
-                        batchDate,
                         entry.DocumentId,
+                        batchDate,
                         entry.AccessCount);
                 }
 
@@ -72,10 +83,7 @@ namespace DocumentLoader.BatchProcessing
             }
             catch (Exception ex)
             {
-                // You could add structured logging here
-                Console.Error.WriteLine(
-                    $"Failed to process {fileName}: {ex.Message}");
-
+               _logger.LogError(ex, $"Error processing file {fileName}: {ex.Message}");
                 MoveSafe(path, Path.Combine(_errorFolder, fileName));
             }
         }
@@ -84,6 +92,7 @@ namespace DocumentLoader.BatchProcessing
         {
             var xdoc = XDocument.Load(path);
             var root = xdoc.Root ?? throw new InvalidDataException("Missing root element.");
+           
 
             var batchDateAttr = root.Attribute("batchDate")?.Value
                 ?? throw new InvalidDataException("Missing 'batchDate' attribute.");

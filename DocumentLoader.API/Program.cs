@@ -12,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 
+builder.Services.AddHealthChecks();
+
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 104_857_600; // 100 MB
@@ -89,14 +92,15 @@ if (app.Environment.IsDevelopment())
 // -------------------------------
 // HTTPS & Authorization
 // -------------------------------
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.UseCors("AllowFrontend");
 
 //healthcheck endpoint
 
-app.MapGet("/health", () => Results.Ok("healthy"));
+app.MapHealthChecks("/health");
+
 
 
 

@@ -217,6 +217,7 @@ namespace DocumentLoader.API.Controllers
                 dto.DocumentId,
                 dto.AccessCount);
 
+            _logger.LogInformation($"Stored daily access for Document ID {dto.DocumentId} on {dto.Date} with count {dto.AccessCount}");
             return Ok();
         }
     }

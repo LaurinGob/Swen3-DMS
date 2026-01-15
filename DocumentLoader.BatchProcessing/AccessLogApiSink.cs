@@ -18,8 +18,8 @@ namespace DocumentLoader.BatchProcessing
         }
 
         public async Task StoreDailyAccessAsync(
-            DateOnly date,
             int documentId,
+            DateOnly date,
             int accessCount)
         {
             var dto = new DailyAccessDto

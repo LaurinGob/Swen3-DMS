@@ -29,3 +29,6 @@ README.md
 !.git/packed-refs
 !.git/refs/heads/**
 !DocumentLoader.OCRWorker/entrypoint.sh
+!BatchInput/
+!BatchError/
+!BatchArchive/

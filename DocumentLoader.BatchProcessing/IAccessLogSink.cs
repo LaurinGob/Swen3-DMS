@@ -9,8 +9,8 @@ namespace DocumentLoader.BatchProcessing
     public interface IAccessLogSink
     {
         Task StoreDailyAccessAsync(
-            DateOnly batchDate,
             int documentId,
+            DateOnly batchDate,
             int accessCount);
     }
 }
