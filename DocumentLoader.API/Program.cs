@@ -3,6 +3,7 @@ using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
 using Minio;
 using Microsoft.EntityFrameworkCore;
+using DocumentLoader.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

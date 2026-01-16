@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DocumentLoader.DAL\DocumentLoader.DAL.csproj" />
     <ProjectReference Include="..\DocumentLoader.RabbitMQ\DocumentLoader.RabbitMQ.csproj" />
+    <ProjectReference Include="..\DocumentLoader.Core\DocumentLoader.Core.csproj" />	  
   </ItemGroup>
 
   <ItemGroup>

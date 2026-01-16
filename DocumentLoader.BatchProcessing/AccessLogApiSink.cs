@@ -16,23 +16,15 @@ namespace DocumentLoader.BatchProcessing
         {
             _client = client;
         }
-
-        public async Task StoreDailyAccessAsync(
-            int documentId,
-            DateOnly date,
-            int accessCount)
+        public async Task StoreBatchAsync(List<DailyAccessDto> accesses)
         {
-            var dto = new DailyAccessDto
-            {
-                DocumentId = documentId,
-                Date = date,
-                AccessCount = accessCount
-            };
-
+            // This sends the entire list as a JSON array in one request
             var response = await _client.PostAsJsonAsync(
-                "api/accesses",
-                dto);
+                "api/Documents/accesses",
+                accesses);
 
+            // This ensures that if the API returns 400 (Bad Request) or 500,
+            // an exception is thrown so the file moves to the Error folder.
             response.EnsureSuccessStatusCode();
         }
     }

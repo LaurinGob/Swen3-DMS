@@ -145,6 +145,46 @@ services:
     networks:
       - appnet
 
+  batchworker:
+    build: 
+        context: .
+        dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: quartz
+    environment:
+      - API_BASE_URL=http://documentloader.api:5000
+      - BATCH_INPUT_PATH=/app/BatchInput
+    volumes: &batch-volumes
+      - ./BatchInput:/app/BatchInput
+      - ./BatchArchive:/app/BatchArchive
+      - ./BatchError:/app/BatchError
+    depends_on:
+      db:
+        condition: service_started
+      documentloader.api:
+        condition: service_healthy
+    networks:
+      - appnet
+
+  batch-gen:
+    build: 
+        context: .
+        dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: gen
+    volumes: *batch-volumes
+    profiles: ["tools"]
+    networks:
+      - appnet
+
+  batch-now:
+    build: 
+        context: .
+        dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: run-once
+    volumes: *batch-volumes
+    profiles: ["tools"]
+    networks:
+      - appnet
+
 
 volumes:
   postgres_data:

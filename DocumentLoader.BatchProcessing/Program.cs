@@ -1,5 +1,6 @@
-﻿using DocumentLoader.API.Services;
-using DocumentLoader.BatchProcessing;
+﻿using DocumentLoader.BatchProcessing;
+using DocumentLoader.Core;
+using DocumentLoader.Core.Services;
 using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
@@ -11,6 +12,7 @@ using Quartz.Impl;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -22,13 +24,29 @@ class Program
         
 
         var basePath = AppContext.BaseDirectory;
-        var projectRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
-        var inputFolder = Path.Combine(projectRoot, "BatchInput");
-        var archiveFolder = Path.Combine(projectRoot, "BatchArchive");
-        var errorFolder = Path.Combine(projectRoot, "BatchError");
+
+
+        var inputFolder = Environment.GetEnvironmentVariable("BATCH_INPUT_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchInput");
+        var archiveFolder = Environment.GetEnvironmentVariable("BATCH_ARCHIVE_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchArchive");
+        var errorFolder = Path.Combine(Environment.GetEnvironmentVariable("BATCH_ERROR_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchError"));
+        
+        Directory.CreateDirectory(inputFolder);
+        Directory.CreateDirectory(archiveFolder);
+        Directory.CreateDirectory(errorFolder);
+
+        Console.WriteLine($"Input Folder: {inputFolder}");
+        Console.WriteLine($"Archive Folder: {archiveFolder}");
+        Console.WriteLine($"Error Folder: {errorFolder}");
+
+        //var projectRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
+        //var inputFolder = Path.Combine(projectRoot, "BatchInput");
+        //var archiveFolder = Path.Combine(projectRoot, "BatchArchive");
+        //var errorFolder = Path.Combine(projectRoot, "BatchError");
 
         // --- 1) Setup DI ---
         var services = new ServiceCollection();
+
+        services.AddCoreServices();
 
         // Logging
         services.AddLogging(config =>
@@ -51,10 +69,14 @@ class Program
 
         // Batch processor
 
+        var apiBaseUrl = Environment.GetEnvironmentVariable("API_BASE_URL") ?? "http://localhost:5000/";
+
         services.AddHttpClient<IAccessLogSink, AccessLogApiSink>(client =>
         {
-            client.BaseAddress = new Uri("http://localhost:5000/"); // API base URL
+            client.BaseAddress = new Uri(apiBaseUrl);
         });
+
+
         services.AddTransient<IAccessLogService, AccessLogService>();
 
         services.AddTransient<AccessLogBatchProcessor>(sp =>
@@ -107,13 +129,31 @@ class Program
     {
         Random rnd = new Random();
 
+        // create definitely valid file -> archive
         Directory.CreateDirectory(inputFolder);
-
-        Console.WriteLine("Generating sample XML files into:");
+        var validIds = new[] { 5, 13, 14, 23, 29, 30 };
+        var goldenName = $"access-SUCCESS-{DateTime.Today:yyyy-MM-dd}.xml";
 
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        // 1) create 3 VALID batch files
+        var goldenEntries = Enumerable.Range(1, 6).Select(i => new
+        {
+            Id = validIds[i % validIds.Length], // Use exactly your valid IDs
+            Count = rnd.Next(10, 50)
+        }).ToList();
+
+        var goldenDoc = new XDocument(
+        new XElement("accessLogBatch",
+            new XAttribute("batchDate", today.ToString("yyyy-MM-dd")),
+            goldenEntries.Select(e => new XElement("entry",
+                new XAttribute("documentId", e.Id),
+                new XAttribute("accessCount", e.Count)))
+        )
+    );
+        goldenDoc.Save(Path.Combine(inputFolder, goldenName));
+        Console.WriteLine($"Created GOLDEN file (Should Archive): {goldenName}");
+
+        // 1) create 3 random (maybe partly valid) batch files
         for (int i = 0; i < 3; i++)
         {
             var batchDate = today.AddDays(-i); // today, yesterday, the day before
@@ -127,21 +167,26 @@ class Program
             var fakeEntries = Enumerable.Range(1, 5).Select(n => new
             {
                 // Use integers because your Processor uses int.TryParse
-                DocumentId = 1000 + n + (i * 10),
-                AccessCount = rnd.Next(1, 50)
+                DocumentId = rnd.Next(1, 40),
+                AccessCount = rnd.Next(1, 50)   
             }).ToList();
+            Console.WriteLine($"{fakeEntries}");
 
             // Build the XML document (valid format)
             var xdoc = new XDocument(
-               new XElement("batch",
+               new XElement("accessLogBatch",
                    new XAttribute("batchDate", batchDate.ToString("yyyy-MM-dd")),
-                   new XElement("entry", new XAttribute("documentId", i), new XAttribute("accessCount", 10 * i)),
-                   new XElement("entry", new XAttribute("documentId", i + 100), new XAttribute("accessCount", 5))
+                   fakeEntries.Select(e =>
+                       new XElement("entry",
+                           new XAttribute("documentId", e.DocumentId),
+                           new XAttribute("accessCount", e.AccessCount)
+                       )
+                   )
                )
            );
 
             xdoc.Save(fullPath);
-            Console.WriteLine($"Created VALID file: {fileName}");
+            Console.WriteLine($"Created random file: {fileName}");
         }
 
         // 2) create ONE INVALID file on purpose to demonstrate error handling

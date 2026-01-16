@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DocumentLoader.Models;
+using Microsoft.Extensions.Logging;
 using Quartz.Logging;
 using System;
 using System.Collections.Generic;
@@ -68,22 +69,25 @@ namespace DocumentLoader.BatchProcessing
             try
             {
                 var (batchDate, entries) = ReadXml(path);
-                _logger.LogInformation(
-                    $"Read {entries.Count} entries for batch date {batchDate}.");
+                _logger.LogInformation($"Read {entries.Count} entries for batch date {batchDate}.");
 
-                foreach (var entry in entries)
+                // 1. Convert our internal record list to the DTO list the API expects
+                var dtos = entries.Select(e => new DailyAccessDto
                 {
-                    await _sink.StoreDailyAccessAsync(
-                        entry.DocumentId,
-                        batchDate,
-                        entry.AccessCount);
-                }
+                    DocumentId = e.DocumentId,
+                    AccessCount = e.AccessCount,
+                    Date = batchDate
+                }).ToList();
 
+                // 2. Call the NEW bulk sink method (No more loop here!)
+                await _sink.StoreBatchAsync(dtos);
+
+                _logger.LogInformation($"Successfully processed and synced batch for {fileName}");
                 MoveSafe(path, Path.Combine(_archiveFolder, fileName));
             }
             catch (Exception ex)
             {
-               _logger.LogError(ex, $"Error processing file {fileName}: {ex.Message}");
+                _logger.LogError(ex, $"Error processing file {fileName}: {ex.Message}");
                 MoveSafe(path, Path.Combine(_errorFolder, fileName));
             }
         }

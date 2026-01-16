@@ -1,7 +1,8 @@
 ﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
+using Microsoft.Extensions.Logging;
 
-namespace DocumentLoader.API.Services
+namespace DocumentLoader.Core.Services
 {
     public class AccessLogService : IAccessLogService
     {
@@ -49,6 +50,39 @@ namespace DocumentLoader.API.Services
                     documentId, date, accessCount);
                 await _repository.AddAsync(newEntry);
 
+            }
+        }
+
+        public async Task<bool> StoreBatchAsync(List<DailyAccessDto> dtos)
+        {
+            if (dtos == null || !dtos.Any()) return true;
+
+            try
+            {
+                // 1. Validation Phase: Check if all documents exist first
+                // This prevents partial saves without needing complex transactions yet
+                foreach (var dto in dtos)
+                {
+                    var document = await _documentRepo.GetByIdAsync(dto.DocumentId);
+                    if (document == null)
+                    {
+                        _logger.LogWarning("Batch failed: Document {DocumentId} not found", dto.DocumentId);
+                        return false;
+                    }
+                }
+
+                // 2. Execution Phase: All IDs are valid, now upsert them
+                foreach (var dto in dtos)
+                {
+                    await StoreDailyAsync(dto.Date, dto.DocumentId, dto.AccessCount);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during batch access log storage");
+                return false;
             }
         }
     }

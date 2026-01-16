@@ -17,7 +17,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\DocumentLoader.DAL\DocumentLoader.DAL.csproj" />
 		<ProjectReference Include="..\DocumentLoader.Models\DocumentLoader.Models.csproj" />
-		<ProjectReference Include="..\Documentloader.API\DocumentLoader.API.csproj" />
+		<ProjectReference Include="..\DocumentLoader.API\DocumentLoader.API.csproj" />
+		<ProjectReference Include="..\DocumentLoader.Core\DocumentLoader.Core.csproj" />
 	</ItemGroup>
 
 </Project>

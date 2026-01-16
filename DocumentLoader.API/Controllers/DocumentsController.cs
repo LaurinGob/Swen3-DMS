@@ -1,6 +1,7 @@
 ﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
+using DocumentLoader.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
-using DocumentLoader.API.Services;
+using DocumentLoader.Core.Services;
 
 
 namespace DocumentLoader.API.Controllers
@@ -210,15 +211,19 @@ namespace DocumentLoader.API.Controllers
 
         [HttpPost("accesses")]
 
-        public async Task<IActionResult> StoreDailyAccess(DailyAccessDto dto)
+        public async Task<IActionResult> StoreBatchAccess([FromBody] List<DailyAccessDto> dtos)
         {
-            await _service.StoreDailyAsync(
-                dto.Date,
-                dto.DocumentId,
-                dto.AccessCount);
+            if (dtos == null || !dtos.Any()) return BadRequest("No data provided.");
 
-            _logger.LogInformation($"Stored daily access for Document ID {dto.DocumentId} on {dto.Date} with count {dto.AccessCount}");
-            return Ok();
+            var success = await _service.StoreBatchAsync(dtos);
+
+            if (!success)
+            {
+                // Return 400 instead of 500
+                return BadRequest("Batch failed. Verify all Document IDs exist in the system.");
+            }
+
+            return Ok(new { Message = $"Successfully processed {dtos.Count} entries." });
         }
     }
 }
