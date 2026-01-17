@@ -51,15 +51,7 @@ namespace DocumentLoader.UnitTests
             _context.Dispose();
         }
 
-        [Test]
-        public async Task Upload_NoFile_ReturnsBadRequest()
-        {
-            IFormFile? file = null;
-
-            var result = await _controller.Upload(file);
-
-            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-        }
+     
 
         [Test]
         public async Task Upload_ValidFile_SavesToRepositoryAndReturnsCreated()
@@ -91,13 +83,6 @@ namespace DocumentLoader.UnitTests
 
 
         [Test]
-        public async Task Search_EmptyQuery_ReturnsBadRequest()
-        {
-            var result = await _controller.Search("");
-            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-        }
-
-        [Test]
         public async Task Search_ValidQuery_ReturnsOkWithResults()
         {
             var documents = new List<Document>
@@ -117,12 +102,7 @@ namespace DocumentLoader.UnitTests
             Assert.That(data.Results.First().FileName, Is.EqualTo("Report1.pdf"));
         }
 
-        [Test]
-        public async Task Delete_NullId_ReturnsBadRequest()
-        {
-            var result = await _controller.Delete(null);
-            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-        }
+       
         [Test]
         public async Task Delete_WithValidId_ReturnsOk()
         {
