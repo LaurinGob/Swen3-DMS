@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Moq.Protected;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
