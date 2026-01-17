@@ -30,7 +30,7 @@ public class OcrWorkerService : BackgroundService
         using var channel = await connection.CreateChannelAsync();
 
         await channel.QueueDeclareAsync(
-            queue: "ocr_queue",
+            queue: "OCR_QUEUE",
             durable: true,
             exclusive: false,
             autoDelete: false,
@@ -57,7 +57,7 @@ public class OcrWorkerService : BackgroundService
         };
 
         await channel.BasicConsumeAsync(
-            queue: "ocr_queue",
+            queue: "OCR_QUEUE",
             autoAck: true,
             consumer: consumer);
 
