@@ -2,6 +2,7 @@
 using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
+using DocumentLoader.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DocumentLoader.Core.Services;
 
 
 namespace DocumentLoader.API.Controllers
@@ -21,14 +23,20 @@ namespace DocumentLoader.API.Controllers
     {
         private readonly IDocumentRepository _repository;
         private readonly IMinioClient _minioClient;
+        private readonly IAccessLogService _service;
         private readonly ILogger _logger;
         private const string BucketName = "uploads";
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IMinioClient minioClient)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service)
         {
             _repository = repository;
             _logger = logger;
-            _minioClient = MinioClient;
+            _service = service;
+            _minioClient = new MinioClient()
+                .WithEndpoint("minio", 9000)
+                .WithCredentials("minioadmin", "minioadmin")
+                .WithSSL(false)
+                .Build();
         }
 
         [HttpPost("upload")]
@@ -221,31 +229,22 @@ namespace DocumentLoader.API.Controllers
 
         }
 
-        public class UpdateDocumentDto
-        {
-            public int DocumentId { get; set; }
-            public string Content { get; set; }
-        }
 
-        public class DocumentDto
-        {
-            public int Id { get; set; }
-            public string FileName { get; set; } = "";
-            public string Summary { get; set; } = "";
-        }
+        [HttpPost("accesses")]
 
-        public class SearchResultDto
+        public async Task<IActionResult> StoreBatchAccess([FromBody] List<DailyAccessDto> dtos)
         {
-            public string Query { get; set; } = "";
-            public IEnumerable<DocumentDto> Results { get; set; } = new List<DocumentDto>();
-        }
+            if (dtos == null || !dtos.Any()) return BadRequest("No data provided.");
 
-        public class UploadResultDto
-        {
-            public int Id { get; set; }
-            public string FileName { get; set; } = "";
-            public string Url { get; set; } = "";
-        }
+            var success = await _service.StoreBatchAsync(dtos);
 
+            if (!success)
+            {
+                // Return 400 instead of 500
+                return BadRequest("Batch failed. Verify all Document IDs exist in the system.");
+            }
+
+            return Ok(new { Message = $"Successfully processed {dtos.Count} entries." });
+        }
     }
 }

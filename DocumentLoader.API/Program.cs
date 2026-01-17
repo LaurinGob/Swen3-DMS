@@ -3,6 +3,7 @@ using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
 using Minio;
 using Microsoft.EntityFrameworkCore;
+using DocumentLoader.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 // -------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+builder.Services.AddHealthChecks();
+
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -23,7 +27,10 @@ builder.Services.AddDbContext<DocumentDbContext>(options =>
 // -------------------------------
 // Register repository
 // -------------------------------
+builder.Services.AddScoped<IAccessLogRepository, AccessLogRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IAccessLogService, AccessLogService>();
+
 
 // -------------------------------
 // Register MinIO client singleton
@@ -87,9 +94,17 @@ if (app.Environment.IsDevelopment())
 // -------------------------------
 // HTTPS & Authorization
 // -------------------------------
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.UseCors("AllowFrontend");
+
+//healthcheck endpoint
+
+app.MapHealthChecks("/health");
+
+
+
+
 
 app.Run();

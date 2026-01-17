@@ -9,6 +9,11 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     ports:
       - "5000:5000"
       - "5001:5001"
@@ -124,7 +129,7 @@ services:
       no_cache: true
     container_name: genai
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}   # use .env file for your API key
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - RABBITMQ__Host=rabbitmq
       - RABBITMQ__User=myuser
       - RABBITMQ__Password=mypassword
@@ -140,6 +145,43 @@ services:
     networks:
       - appnet
 
+  batchworker:
+    build:
+      context: .
+      dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: quartz
+    environment:
+      - API_BASE_URL=http://documentloader.api:5000
+      - BATCH_INPUT_PATH=/app/BatchInput
+    volumes: &batch-volumes
+      - ./BatchInput:/app/BatchInput
+      - ./BatchArchive:/app/BatchArchive
+      - ./BatchError:/app/BatchError
+    depends_on:
+      db:
+        condition: service_started
+      documentloader.api:
+        condition: service_healthy
+    networks:
+      - appnet
+
+  batch-gen:
+    build:
+      context: .
+      dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: gen
+    volumes: *batch-volumes
+    profiles: ["tools"]
+    networks:
+      - appnet
+
+  batch-now:
+    build:
+      context: .
+      dockerfile: DocumentLoader.BatchProcessing/Dockerfile
+    command: run-once
+    volumes: *batch-volumes
+    profiles: ["tools"]
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     environment:
@@ -160,7 +202,6 @@ services:
       - elasticsearch
     networks:
       - appnet
-
 
 volumes:
   postgres_data:

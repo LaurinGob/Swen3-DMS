@@ -401,3 +401,8 @@ FodyWeavers.xsd
 /BatchInput
 /OcrResults/15
 *.env
+
+OcrResults/
+/BatchError
+/BatchInput
+/BatchArchive
