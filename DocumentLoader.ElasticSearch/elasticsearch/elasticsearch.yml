@@ -1,0 +1,8 @@
+cluster.name: documentloader-cluster
+node.name: elastic-node-1
+
+network.host: 0.0.0.0
+discovery.type: single-node
+
+xpack.security.enabled: false
+xpack.security.enrollment.enabled: false

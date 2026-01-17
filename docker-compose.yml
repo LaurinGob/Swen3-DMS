@@ -161,17 +161,6 @@ services:
     networks:
       - appnet
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.1
-    volumes:
-      - ./elk/logstash/pipeline.conf:/usr/share/logstash/pipeline/logstash.conf
-      - ./elk/logstash/jdbc:/usr/share/logstash/jdbc
-    depends_on:
-      - elasticsearch
-      - db
-    networks:
-      - appnet
-
 
 volumes:
   postgres_data:
