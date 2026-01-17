@@ -36,22 +36,25 @@ namespace DocumentLoader.RabbitMQ
                 arguments: null
             );
 
-            var consumer = new AsyncEventingBasicConsumer(channel);
+            var consumer = new EventingBasicConsumer(channel);
 
-            consumer.Received += async (model, ea) =>
+            consumer.Received += (model, ea) =>
             {
-                var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-
-                try
+                Task.Run(async () =>
                 {
-                    await onMessageReceived(message);
-                    channel.BasicAck(ea.DeliveryTag, false);
-                }
-                catch
-                {
-                    // Requeue message on failure
-                    channel.BasicNack(ea.DeliveryTag, false, true);
-                }
+                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+    
+                    try
+                    {
+                        await onMessageReceived(message);
+                        channel.BasicAck(ea.DeliveryTag, false);
+                    }
+                    catch
+                    {
+                        // Requeue message on failure
+                        channel.BasicNack(ea.DeliveryTag, false, true);
+                    }
+                });
             };
 
             channel.BasicConsume(

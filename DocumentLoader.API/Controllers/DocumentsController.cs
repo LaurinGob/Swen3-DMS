@@ -1,4 +1,5 @@
-﻿using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.API.Messaging;
+using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
 using DocumentLoader.Core.Services;
@@ -40,7 +41,7 @@ namespace DocumentLoader.API.Controllers
 
         [HttpPost("upload")]
         [RequestSizeLimit(100_000_000)]
-        public async Task<IActionResult> Upload(IFormFile file, [FromServices] Minio.MinioClient minioClient)
+        public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
@@ -70,6 +71,7 @@ namespace DocumentLoader.API.Controllers
                     Summary = ""
                 };
                 await _repository.AddAsync(document);
+                //await _publisher.PublishDocumentUploadedAsync(document);
 
                 var job = new OcrJob
                 {
@@ -141,7 +143,7 @@ namespace DocumentLoader.API.Controllers
 
         // update object from database
         [HttpPut("update")]
-        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
+        public IActionResult Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
