@@ -1,4 +1,5 @@
-﻿using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.API.Messaging;
+using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
 using Microsoft.Extensions.Logging;
@@ -23,20 +24,16 @@ namespace DocumentLoader.API.Controllers
         private readonly ILogger _logger;
         private const string BucketName = "uploads";
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IMinioClient minioClient)
         {
             _repository = repository;
             _logger = logger;
-            _minioClient = new MinioClient()
-                .WithEndpoint("minio", 9000)
-                .WithCredentials("minioadmin", "minioadmin")
-                .WithSSL(false)
-                .Build();
+            _minioClient = MinioClient;
         }
 
         [HttpPost("upload")]
         [RequestSizeLimit(100_000_000)]
-        public async Task<IActionResult> Upload(IFormFile file, [FromServices] Minio.MinioClient minioClient)
+        public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
@@ -48,7 +45,43 @@ namespace DocumentLoader.API.Controllers
 
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                await file.CopyToAsync(stream);
+                // Ensure bucket exists
+                bool exists = await minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
+                if (!exists)
+                {
+                    await minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
+                }
+
+                // Upload file to MinIO
+                using var fileStream = file.OpenReadStream();
+
+                await _minioClient.PutObjectAsync(new PutObjectArgs()
+                .WithBucket(BucketName)
+                .WithObject(file.FileName)
+                .WithStreamData(fileStream)
+                .WithObjectSize(file.Length));
+
+                // Save metadata to database
+                var document = new Models.Document
+                {
+                    FileName = file.FileName,
+                    FilePath = $"minio://{BucketName}/{file.FileName}",
+                    Summary = ""
+                };
+                await _repository.AddAsync(document);
+                //await _publisher.PublishDocumentUploadedAsync(document);
+
+                var job = new OcrJob
+                {
+                    DocumentId = document.Id,
+                    Bucket = BucketName,
+                    ObjectName = file.FileName
+                };
+
+                // Serialize and publish
+                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
+
+                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
             }
 
             var document = new Document
@@ -121,7 +154,7 @@ namespace DocumentLoader.API.Controllers
 
         // update object from database
         [HttpPut("update")]
-        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
+        public IActionResult Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();

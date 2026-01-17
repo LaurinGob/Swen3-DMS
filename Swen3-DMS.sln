@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.RabbitMQ", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.GenAIWorker", "DocumentLoader.GenAIWorker\DocumentLoader.GenAIWorker.csproj", "{F49802F7-4CD9-439B-BA31-08CE99A76554}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.ElasticSearch", "DocumentLoader.ElasticSearch\DocumentLoader.ElasticSearch.csproj", "{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{F49802F7-4CD9-439B-BA31-08CE99A76554}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F49802F7-4CD9-439B-BA31-08CE99A76554}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F49802F7-4CD9-439B-BA31-08CE99A76554}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
