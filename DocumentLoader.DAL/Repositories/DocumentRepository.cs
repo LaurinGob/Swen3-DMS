@@ -1,5 +1,6 @@
 ﻿using DocumentLoader.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using System;
 
@@ -8,10 +9,12 @@ namespace DocumentLoader.DAL.Repositories
     public class DocumentRepository : IDocumentRepository
     {
         private readonly DocumentDbContext _context;
+        private readonly ILogger<DocumentRepository> _logger;
 
-        public DocumentRepository(DocumentDbContext context)
+        public DocumentRepository(ILogger<DocumentRepository> logger, DocumentDbContext context)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<Document> AddAsync(Document doc)
@@ -46,5 +49,20 @@ namespace DocumentLoader.DAL.Repositories
             _context.Documents.Update(doc);
             await _context.SaveChangesAsync();
         }
+
+        public async Task UpdateSummaryAsync(SummaryResult summary)
+        {
+            var doc = await _context.Documents
+                .FirstOrDefaultAsync(d => d.Id == summary.DocumentId);
+
+            if (doc != null)
+            {
+                doc.Summary = summary.SummaryText;
+                _logger.LogInformation("Setting doc.Summary = {summary}", summary.SummaryText);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Saved summary for DocumentId {id}", summary.DocumentId);
+            }
+        }
+
     }
 }

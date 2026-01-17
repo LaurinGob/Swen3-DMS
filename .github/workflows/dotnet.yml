@@ -1,0 +1,32 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "main", "webui", "unitTesting", "rabbitMq" ]
+  pull_request:
+    branches: [ "main", "webui", "unitTesting", "rabbitmq" ]
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore Swen3-DMS.sln
+
+      - name: Build
+        run: dotnet build Swen3-DMS.sln --configuration Release --no-restore
+
+      - name: Code formatting check
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+
+      - name: Test
+        run: dotnet test Swen3-DMS.sln --no-build --verbosity normal

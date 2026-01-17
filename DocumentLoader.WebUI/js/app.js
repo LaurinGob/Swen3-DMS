@@ -1,4 +1,7 @@
-﻿const API_BASE = "/api/documents"; // works if nginx proxies /api to backend
+﻿//const API_BASE = "http://localhost:5000/api/Documents"
+const API_BASE = "/api/Documents"; // works if nginx proxies /api to backend
+
+console.log("hier");
 
 // ---------------- Upload ----------------
 export function initUpload() {
@@ -26,17 +29,25 @@ export function initUpload() {
 
             if (res.ok) {
                 feedback.innerText = "Upload successful!";
-                feedback.style.color = "#EDED68";
+                feedback.style.color = "#9A8AAB";
                 fileInput.value = ""; // reset input
                 loadAllDocuments(); // refresh table
+                const data = await res.json();
+                console.log('JSON data:', data);
+                return data; // returns JS object
             } else {
+                const error = await res.json();
+                console.log("Backend error:", error);
+                throw new Error(error.details || error.error || "Unknown error");
                 feedback.innerText = "Upload failed!";
                 feedback.style.color = "#9A8AAB";
             }
         } catch (err) {
+            console.log(err)
             feedback.innerText = "Error uploading file.";
             feedback.style.color = "#5D4F6B";
         }
+
     });
 }
 
@@ -59,6 +70,7 @@ async function loadAllDocuments(query = "") {
 
     try {
         const res = await fetch(`${API_BASE}/search?query=${encodeURIComponent(query)}`);
+        console.log(res);
         const data = await res.json();
         tableBody.innerHTML = "";
 
@@ -105,37 +117,58 @@ async function loadAllDocuments(query = "") {
         });
 
     } catch (err) {
+        console.log(err);
         tableBody.innerHTML = "<tr><td colspan='3'>Error loading documents.</td></tr>";
     }
+
 }
 
 // ---------------- Details Page ----------------
 export function initDetails() {
+    console.log("initDetails called");
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     const titleEl = document.getElementById("doc-title");
-    const summaryEl = document.getElementById("summary-input");
     const updateBtn = document.getElementById("update-btn");
+    const generateSummaryBtn = document.getElementById("generate-summary-btn");
     const deleteBtn = document.getElementById("delete-btn");
-    const feedback = document.getElementById("feedback");
+    const summaryEl = document.getElementById("doc-summary");
+    const statusEl = document.getElementById("status");
+    const uploadedAtEl = document.getElementById("uploaded-at");
+
 
     async function loadDetails() {
-        const res = await fetch(`${API_BASE}/search?query=${id}`);
-        const data = await res.json();
-        const doc = data.results.find(d => d.id == id);
-        if (doc) {
+        try {
+            const res = await fetch(`${API_BASE}/${id}`);
+
+            if (!res.ok) {
+                titleEl.innerText = "Document not found";
+                return;
+            }
+
+            const doc = await res.json();
+
             titleEl.innerText = doc.fileName;
-            summaryEl.value = doc.summary;
-        } else {
-            titleEl.innerText = "Document not found";
+            summaryEl.value = doc.summary ?? "";
+
+            if (doc.uploadedAt) {
+                const date = new Date(doc.uploadedAt);
+                uploadedAtEl.innerText = date.toLocaleString();
+            }
+            else {
+                uploadedAtEl.innerText = "Unknown";
+            }
+        } catch (err) {
+            console.error(err);
+            titleEl.innerText = "Error loading document";
         }
     }
 
     updateBtn.addEventListener("click", async () => {
         const content = summaryEl.value.trim();
         if (!content) {
-            feedback.innerText = "Summary cannot be empty.";
-            feedback.style.color = "#B684EB";
+            statusEl.innerText = "Summary cannot be empty.";
+            statusEl.style.color = "#B684EB";
             return;
         }
 
@@ -146,15 +179,54 @@ export function initDetails() {
         });
 
         if (res.ok) {
-            feedback.innerText = "Update successful!";
-            feedback.style.color = "#EDED68";
+            statusEl.innerText = "Update successful!";
+            statusEl.style.color = "#9A8AAB";
         } else {
-            feedback.innerText = "Update failed.";
-            feedback.style.color = "#9A8AAB";
+            statusEl.innerText = "Update failed.";
+            statusEl.style.color = "#9A8AAB";
+        }
+    });
+
+    generateSummaryBtn.addEventListener("click", async () => {
+        statusEl.innerText = "Generating summary… please wait.";
+
+        generateSummaryBtn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/${id}/summaries`, {
+                method: "POST"
+            });
+
+            if (!res.ok) {
+                statusEl.innerText = "Failed to start summary generation.";
+                generateSummaryBtn.disabled = false;
+                return;
+            }
+
+            // Poll every 2 seconds
+            const poller = setInterval(async () => {
+                const res = await fetch(`${API_BASE}/${id}`);
+
+                // 🚨 If this returns HTML, your routing is broken
+                const doc = await res.json();
+
+                if (doc.summary && doc.summary.trim() !== "") {
+                    summaryEl.value = doc.summary;
+                    statusEl.innerText = "Summary generated!";
+                    generateSummaryBtn.disabled = false;
+                    clearInterval(poller);
+                }
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            statusEl.innerText = "Error generating summary.";
+            generateSummaryBtn.disabled = false;
         }
     });
 
     deleteBtn.addEventListener("click", async () => {
+
         if (!confirm("Are you sure you want to delete this document?")) return;
         const res = await fetch(`${API_BASE}/delete?document_id=${id}`, { method: "DELETE" });
         if (res.ok) {
@@ -165,5 +237,7 @@ export function initDetails() {
         }
     });
 
+    console.log("Loading details for document ID:", id);
     loadDetails();
+
 }
