@@ -12,16 +12,20 @@ namespace DocumentLoader.GenAIWorker
     {
         private readonly ILogger<GenAIWorkerService> _logger;
         private readonly GeminiService _gemini;
+        private readonly IRabbitMqSubscriber _subscriber;
+        private readonly IRabbitMqPublisher _publisher;
 
-        public GenAIWorkerService(ILogger<GenAIWorkerService> logger, GeminiService gemini)
+        public GenAIWorkerService(ILogger<GenAIWorkerService> logger, GeminiService gemini, IRabbitMqSubscriber subscriber, IRabbitMqPublisher publisher)
         {
             _logger = logger;
             _gemini = gemini;
+            _subscriber = subscriber;
+            _publisher = publisher;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await RabbitMqSubscriber.Instance.SubscribeAsync(
+            await _subscriber.SubscribeAsync(
                 RabbitMqQueues.RESULT_QUEUE,
                 async messageJson =>
                 {
@@ -60,7 +64,7 @@ namespace DocumentLoader.GenAIWorker
                     };
 
                     // Publish to summary queue
-                    await RabbitMqPublisher.Instance.PublishAsync(
+                    await _publisher.PublishAsync(
                         RabbitMqQueues.SUMMARY_QUEUE,
                         JsonSerializer.Serialize(summaryResult)
                     );

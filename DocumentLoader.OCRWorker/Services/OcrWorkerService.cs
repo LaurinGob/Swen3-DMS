@@ -17,11 +17,11 @@ namespace DocumentLoader.OCRWorker.Services
         private readonly ILogger<OcrWorkerService> _logger;
         private readonly IMinioClient _minio;
         private readonly IConfiguration _configuration;
-        private readonly RabbitMqSubscriber _subscriber;
-        private readonly RabbitMqPublisher _publisher;
+        private readonly IRabbitMqSubscriber _subscriber;
+        private readonly IRabbitMqPublisher _publisher;
 
 
-        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio, IConfiguration configuration, RabbitMqSubscriber subscriber, RabbitMqPublisher publisher)
+        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio, IConfiguration configuration, IRabbitMqSubscriber subscriber, IRabbitMqPublisher publisher)
         {
             _logger = logger;
             _minio = minio;
@@ -32,12 +32,15 @@ namespace DocumentLoader.OCRWorker.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("Test komm ich hierher");
+
             await _subscriber.SubscribeAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 async messageJson =>
                 {
                     try
                     {
+                        _logger.LogInformation("[OCRWorker] Received OCR job message.");
                         var job = JsonSerializer.Deserialize<OcrJob>(messageJson);
                         if (job == null)
                         {

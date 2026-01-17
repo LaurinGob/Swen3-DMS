@@ -6,11 +6,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class OcrWorkerService : BackgroundService
+public class OldOcrWorkerService : BackgroundService
 {
-    private readonly ILogger<OcrWorkerService> _logger;
+    private readonly ILogger<OldOcrWorkerService> _logger;
 
-    public OcrWorkerService(ILogger<OcrWorkerService> logger)
+    public OldOcrWorkerService(ILogger<OldOcrWorkerService> logger)
     {
         _logger = logger;
     }
@@ -47,7 +47,7 @@ public class OcrWorkerService : BackgroundService
 
                 // Simulate OCR processing
                 await Task.Delay(2000, stoppingToken);
-
+                
                 _logger.LogInformation($"OCR processed document {message}");
             }
             catch (Exception ex)

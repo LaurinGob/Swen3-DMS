@@ -1,21 +1,25 @@
 ﻿using DocumentLoader.GenAIWorker;
+using DocumentLoader.RabbitMQ; // Wichtig für die Interfaces
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-Host.CreateDefaultBuilder(args)
-    .ConfigureServices((hostContext, services) =>
-    {
-        // Register GeminiService with logger injection
-        services.AddSingleton<GeminiService>(sp =>
-            new GeminiService(sp.GetRequiredService<ILogger<GeminiService>>()));
+var builder = Host.CreateApplicationBuilder(args);
 
-        services.AddHostedService<GenAIWorkerService>();
-    })
-    .ConfigureLogging(logging =>
-    {
-        logging.ClearProviders();
-        logging.AddConsole();
-    })
-    .Build()
-    .Run();
+// Logging konfigurieren
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+// 1. RabbitMQ Komponenten registrieren (Interface zu Klasse)
+// Ohne diese Zeilen kann der GenAIWorkerService nicht starten!
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+builder.Services.AddSingleton<IRabbitMqSubscriber, RabbitMqSubscriber>();
+
+// 2. GeminiService registrieren
+builder.Services.AddSingleton<GeminiService>();
+
+// 3. Den Worker registrieren
+builder.Services.AddHostedService<GenAIWorkerService>();
+
+var app = builder.Build();
+await app.RunAsync();

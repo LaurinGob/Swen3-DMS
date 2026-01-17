@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DocumentLoader.RabbitMQ
 {
-    public sealed class RabbitMqSubscriber
+    public sealed class RabbitMqSubscriber : IRabbitMqSubscriber
     {
         private static readonly Lazy<RabbitMqSubscriber> _instance =
             new Lazy<RabbitMqSubscriber>(() => new RabbitMqSubscriber());
