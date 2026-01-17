@@ -21,6 +21,7 @@
 		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
+		<PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>

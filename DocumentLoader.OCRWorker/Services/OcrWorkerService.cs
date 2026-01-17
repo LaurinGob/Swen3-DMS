@@ -17,18 +17,22 @@ namespace DocumentLoader.OCRWorker.Services
         private readonly ILogger<OcrWorkerService> _logger;
         private readonly IMinioClient _minio;
         private readonly IConfiguration _configuration;
+        private readonly RabbitMqSubscriber _subscriber;
+        private readonly RabbitMqPublisher _publisher;
 
 
-        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio, IConfiguration configuration)
+        public OcrWorkerService(ILogger<OcrWorkerService> logger, IMinioClient minio, IConfiguration configuration, RabbitMqSubscriber subscriber, RabbitMqPublisher publisher)
         {
             _logger = logger;
             _minio = minio;
             _configuration = configuration;
+            _subscriber = subscriber;
+            _publisher = publisher;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            RabbitMqSubscriber.Instance.Subscribe(
+            await _subscriber.SubscribeAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 async messageJson =>
                 {
@@ -93,6 +97,8 @@ namespace DocumentLoader.OCRWorker.Services
             };
 
             var proc = Process.Start(psi);
+            if (proc == null)
+                throw new Exception("Failed to start pdftoppm process.");
             string stderr = await proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
 
@@ -138,7 +144,7 @@ namespace DocumentLoader.OCRWorker.Services
 
 
 
-        private Task PrepareForGeminiAsync(OcrJob job, string ocrText)
+        private async Task PrepareForGeminiAsync(OcrJob job, string ocrText)
         {
 
             SaveOcrToFile(job, ocrText);
@@ -155,11 +161,10 @@ namespace DocumentLoader.OCRWorker.Services
             string json = JsonSerializer.Serialize(result);
 
             // Publish to the queue your GenAI worker listens to
-            RabbitMqPublisher.Instance.Publish(RabbitMqQueues.RESULT_QUEUE, json);
+            await _publisher.PublishAsync(RabbitMqQueues.RESULT_QUEUE, json);
 
             _logger.LogInformation($"[OCRWorker] Published OCR result for {job.ObjectName} to RESULT_QUEUE. Length={ocrText.Length}");
 
-            return Task.CompletedTask;
         }
 
         private void SaveOcrToFile(OcrJob job, string ocrText)

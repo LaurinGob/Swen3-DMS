@@ -1,5 +1,4 @@
-﻿using DocumentLoader.API.Messaging;
-using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
 using DocumentLoader.Core.Services;
@@ -12,7 +11,6 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
-using DocumentLoader.Core.Services;
 
 
 namespace DocumentLoader.API.Controllers
@@ -25,9 +23,10 @@ namespace DocumentLoader.API.Controllers
         private readonly IMinioClient _minioClient;
         private readonly IAccessLogService _service;
         private readonly ILogger _logger;
+        private readonly IRabbitMqPublisher _publisher;
         private const string BucketName = "uploads";
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher)
         {
             _repository = repository;
             _logger = logger;
@@ -37,6 +36,7 @@ namespace DocumentLoader.API.Controllers
                 .WithCredentials("minioadmin", "minioadmin")
                 .WithSSL(false)
                 .Build();
+            _publisher = publisher;
         }
 
         [HttpPost("upload")]
@@ -45,19 +45,13 @@ namespace DocumentLoader.API.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
-
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-            if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
-
-            var filePath = Path.Combine(uploadPath, file.FileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            try
             {
                 // Ensure bucket exists
-                bool exists = await minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
+                bool exists =  await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
                 if (!exists)
                 {
-                    await minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
+                    await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
                 }
 
                 // Upload file to MinIO
@@ -87,36 +81,25 @@ namespace DocumentLoader.API.Controllers
                 };
 
                 // Serialize and publish
-                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
+                await _publisher.PublishAsync(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
                 return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
+
             }
-
-            var document = new Document
+            catch (Exception ex)
             {
-                FileName = file.FileName,
-                FilePath = filePath,
-                UploadedAt = DateTime.UtcNow,
-                Summary = ""
-            };
-
-            await _repository.AddAsync(document);
-
-            return Created($"/uploads/{file.FileName}", new UploadResultDto
-            {
-                Id = document.Id,
-                FileName = document.FileName,
-                Url = $"/uploads/{file.FileName}"
-            });
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
         }
 
+   
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? query)
         {
 
-
+            // Simple search: return all documents where FileName or Summary contains the query
             var allDocs = await _repository.GetAllAsync();
 
             if (string.IsNullOrWhiteSpace(query))
@@ -125,9 +108,9 @@ namespace DocumentLoader.API.Controllers
             var results = allDocs
                 .Where(d => d.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
                          || d.Summary.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .Select(d => new DocumentDto { Id = d.Id, FileName = d.FileName, Summary = d.Summary });
+                .Select(d => new { d.Id, d.FileName, d.Summary });
 
-            return Ok(new SearchResultDto
+            return Ok(new
             {
                 Query = query,
                 Results = results
@@ -162,7 +145,7 @@ namespace DocumentLoader.API.Controllers
 
         // update object from database
         [HttpPut("update")]
-        public IActionResult Update([FromBody] UpdateDocumentDto dto)
+        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
@@ -195,7 +178,7 @@ namespace DocumentLoader.API.Controllers
                 ObjectName = doc.FileName
             };
 
-            RabbitMqPublisher.Instance.Publish(
+            await _publisher.PublishAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 JsonSerializer.Serialize(job)
             );

@@ -20,9 +20,9 @@ namespace DocumentLoader.API.Services
             _serviceProvider = serviceProvider;
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            RabbitMqSubscriber.Instance.Subscribe(RabbitMqQueues.SUMMARY_QUEUE, async message =>
+            await RabbitMqSubscriber.Instance.SubscribeAsync(RabbitMqQueues.SUMMARY_QUEUE, async message =>
             {
                 _logger.LogInformation($"[API] Received summary message: {message}");
                 try
@@ -49,7 +49,15 @@ namespace DocumentLoader.API.Services
                 await Task.CompletedTask;
             });
 
-            return Task.CompletedTask;
+            try
+            {
+                // Hält den Worker am Leben, bis das System ihn stoppt
+                await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[API] Service wird beendet...");
+            }
         }
     }
 }

@@ -3,26 +3,25 @@ using System.Text;
 
 namespace DocumentLoader.RabbitMQ
 {
-    public sealed class RabbitMqPublisher
+    public sealed class RabbitMqPublisher : IRabbitMqPublisher
     {
         private static readonly Lazy<RabbitMqPublisher> _instance =
             new Lazy<RabbitMqPublisher>(() => new RabbitMqPublisher());
 
-        private readonly IConnection _connection;
-
-        private RabbitMqPublisher()
-        {
-            _connection = RabbitMqConnectionProvider.Instance.GetConnection();
-        }
+        public RabbitMqPublisher() { }
 
         public static RabbitMqPublisher Instance => _instance.Value;
 
-        public void Publish(string queueName, string message)
+        public async Task PublishAsync(string queueName, string message)
         {
-            using var channel = _connection.CreateModel();
+            // 1. Connection asynchron holen
+            var connection = await RabbitMqConnectionProvider.Instance.GetConnectionAsync();
 
-            // Ensure the queue exists
-            channel.QueueDeclare(
+            // 2. Channel asynchron erstellen (IChannel statt IModel in v7)
+            using var channel = await connection.CreateChannelAsync();
+
+            // 3. Queue asynchron deklarieren
+            await channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
@@ -32,10 +31,11 @@ namespace DocumentLoader.RabbitMQ
 
             var body = Encoding.UTF8.GetBytes(message);
 
-            channel.BasicPublish(
-                exchange: "",
+            // 4. Nachricht asynchron senden
+            // In v7 sind die Parameter für BasicPublishAsync etwas direkter
+            await channel.BasicPublishAsync(
+                exchange: string.Empty, // Default Exchange
                 routingKey: queueName,
-                basicProperties: null,
                 body: body
             );
         }

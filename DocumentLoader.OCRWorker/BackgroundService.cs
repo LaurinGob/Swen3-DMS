@@ -56,7 +56,7 @@ public class OcrWorkerService : BackgroundService
             }
         };
 
-        channel.BasicConsumeAsync(
+        await channel.BasicConsumeAsync(
             queue: "ocr_queue",
             autoAck: true,
             consumer: consumer);

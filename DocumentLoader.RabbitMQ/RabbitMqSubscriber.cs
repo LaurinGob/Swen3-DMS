@@ -11,24 +11,25 @@ namespace DocumentLoader.RabbitMQ
         private static readonly Lazy<RabbitMqSubscriber> _instance =
             new Lazy<RabbitMqSubscriber>(() => new RabbitMqSubscriber());
 
-        private readonly IConnection _connection;
-
-        private RabbitMqSubscriber()
-        {
-            _connection = RabbitMqConnectionProvider.Instance.GetConnection();
-        }
+        // Wir entfernen die feste _connection im Konstruktor, 
+        // da GetConnectionAsync nun await erfordert.
+        public RabbitMqSubscriber() { }
 
         public static RabbitMqSubscriber Instance => _instance.Value;
 
         /// <summary>
-        /// Subscribe to a queue with an async handler
+        /// Subscribe to a queue with a native async handler (RabbitMQ v7)
         /// </summary>
-        public void Subscribe(string queueName, Func<string, Task> onMessageReceived)
+        public async Task SubscribeAsync(string queueName, Func<string, Task> onMessageReceived)
         {
-            var channel = _connection.CreateModel();
+            // 1. Connection asynchron holen
+            var connection = await RabbitMqConnectionProvider.Instance.GetConnectionAsync();
 
-            // Ensure queue exists
-            channel.QueueDeclare(
+            // 2. Kanal erstellen (IChannel in v7)
+            var channel = await connection.CreateChannelAsync();
+
+            // 3. Queue deklarieren
+            await channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
@@ -36,28 +37,32 @@ namespace DocumentLoader.RabbitMQ
                 arguments: null
             );
 
-            var consumer = new EventingBasicConsumer(channel);
+            // 4. Den asynchronen Consumer nutzen
+            var consumer = new AsyncEventingBasicConsumer(channel);
 
-            consumer.Received += (model, ea) =>
+            // In v7 nutzen wir das ReceivedAsync Event
+            consumer.ReceivedAsync += async (model, ea) =>
             {
-                Task.Run(async () =>
+                var body = ea.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+
+                try
                 {
-                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-    
-                    try
-                    {
-                        await onMessageReceived(message);
-                        channel.BasicAck(ea.DeliveryTag, false);
-                    }
-                    catch
-                    {
-                        // Requeue message on failure
-                        channel.BasicNack(ea.DeliveryTag, false, true);
-                    }
-                });
+                    // Business Logic ausführen
+                    await onMessageReceived(message);
+
+                    // Bestätigung senden
+                    await channel.BasicAckAsync(ea.DeliveryTag, false);
+                }
+                catch (Exception)
+                {
+                    // Bei Fehler zurück in die Warteschlange (requeue: true)
+                    await channel.BasicNackAsync(ea.DeliveryTag, false, true);
+                }
             };
 
-            channel.BasicConsume(
+            // 5. Konsumierung starten
+            await channel.BasicConsumeAsync(
                 queue: queueName,
                 autoAck: false,
                 consumer: consumer

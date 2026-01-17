@@ -19,9 +19,9 @@ namespace DocumentLoader.GenAIWorker
             _gemini = gemini;
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            RabbitMqSubscriber.Instance.Subscribe(
+            await RabbitMqSubscriber.Instance.SubscribeAsync(
                 RabbitMqQueues.RESULT_QUEUE,
                 async messageJson =>
                 {
@@ -60,7 +60,7 @@ namespace DocumentLoader.GenAIWorker
                     };
 
                     // Publish to summary queue
-                    RabbitMqPublisher.Instance.Publish(
+                    await RabbitMqPublisher.Instance.PublishAsync(
                         RabbitMqQueues.SUMMARY_QUEUE,
                         JsonSerializer.Serialize(summaryResult)
                     );
@@ -68,7 +68,15 @@ namespace DocumentLoader.GenAIWorker
                     _logger.LogInformation("[GenAIWorker] Published summary to SUMMARY_QUEUE for {doc}", ocrResult.ObjectName);
                 });
 
-            return Task.CompletedTask;
+            try
+            {
+                // Hält den Worker am Leben, bis das System ihn stoppt
+                await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[GenAIWorker] Service wird beendet...");
+            }
         }
     }
 }
