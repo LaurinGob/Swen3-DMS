@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using System;
+using System.Threading.Tasks;
 
 namespace DocumentLoader.RabbitMQ
 {
@@ -22,28 +23,28 @@ namespace DocumentLoader.RabbitMQ
                 HostName = host,
                 UserName = user,
                 Password = password,
-                DispatchConsumersAsync = true
             };
-
-            _connection = _factory.CreateConnection();
         }
 
         public static RabbitMqConnectionProvider Instance => _instance.Value;
 
-        public IConnection GetConnection()
+        public async Task<IConnection> GetConnectionAsync()
         {
+            // Wir nutzen ein einfaches Lock oder prüfen auf null, 
+            // um sicherzustellen, dass nicht mehrere Verbindungen gleichzeitig geöffnet werden
             if (_connection == null || !_connection.IsOpen)
             {
-                _connection = _factory.CreateConnection();
+                _connection = await _factory.CreateConnectionAsync();
             }
             return _connection;
         }
 
         public void Dispose()
         {
+            // In v7 ist IConnection auch IAsyncDisposable, aber für Dispose machen wir es so:
             if (_connection != null)
             {
-                if (_connection.IsOpen) _connection.Close();
+                if (_connection.IsOpen) _connection.CloseAsync().GetAwaiter().GetResult();
                 _connection.Dispose();
             }
         }

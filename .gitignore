@@ -397,8 +397,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-
-#environment variables Gemini
+/BatchError
+/BatchInput
+/OcrResults/15
 *.env
 
 OcrResults/

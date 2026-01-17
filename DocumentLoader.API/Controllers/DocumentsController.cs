@@ -1,5 +1,4 @@
-﻿using DocumentLoader.API.Messaging;
-using DocumentLoader.DAL.Repositories;
+﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
 using DocumentLoader.Core.Services;
@@ -12,7 +11,6 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
-using DocumentLoader.Core.Services;
 
 
 namespace DocumentLoader.API.Controllers
@@ -25,9 +23,10 @@ namespace DocumentLoader.API.Controllers
         private readonly IMinioClient _minioClient;
         private readonly IAccessLogService _service;
         private readonly ILogger _logger;
+        private readonly IRabbitMqPublisher _publisher;
         private const string BucketName = "uploads";
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher)
         {
             _repository = repository;
             _logger = logger;
@@ -37,6 +36,7 @@ namespace DocumentLoader.API.Controllers
                 .WithCredentials("minioadmin", "minioadmin")
                 .WithSSL(false)
                 .Build();
+            _publisher = publisher;
         }
 
         [HttpPost("upload")]
@@ -44,14 +44,14 @@ namespace DocumentLoader.API.Controllers
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file provided.");
+                return BadRequest("No file uploaded.");
             try
             {
                 // Ensure bucket exists
-                bool exists = await minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
+                bool exists =  await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
                 if (!exists)
                 {
-                    await minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
+                    await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
                 }
 
                 // Upload file to MinIO
@@ -81,9 +81,10 @@ namespace DocumentLoader.API.Controllers
                 };
 
                 // Serialize and publish
-                RabbitMqPublisher.Instance.Publish(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
+                await _publisher.PublishAsync(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
                 return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
+
             }
             catch (Exception ex)
             {
@@ -91,12 +92,12 @@ namespace DocumentLoader.API.Controllers
             }
         }
 
+   
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? query)
         {
-
 
             // Simple search: return all documents where FileName or Summary contains the query
             var allDocs = await _repository.GetAllAsync();
@@ -115,6 +116,7 @@ namespace DocumentLoader.API.Controllers
                 Results = results
             });
         }
+
 
         // delete object from database
         [HttpDelete("delete")]
@@ -143,7 +145,7 @@ namespace DocumentLoader.API.Controllers
 
         // update object from database
         [HttpPut("update")]
-        public IActionResult Update([FromBody] UpdateDocumentDto dto)
+        public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
             if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
@@ -176,7 +178,7 @@ namespace DocumentLoader.API.Controllers
                 ObjectName = doc.FileName
             };
 
-            RabbitMqPublisher.Instance.Publish(
+            await _publisher.PublishAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 JsonSerializer.Serialize(job)
             );

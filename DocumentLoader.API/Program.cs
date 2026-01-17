@@ -1,6 +1,7 @@
 using DocumentLoader.API.Services;
 using DocumentLoader.DAL;
 using DocumentLoader.DAL.Repositories;
+using DocumentLoader.RabbitMQ;
 using Minio;
 using Microsoft.EntityFrameworkCore;
 using DocumentLoader.Core.Services;
