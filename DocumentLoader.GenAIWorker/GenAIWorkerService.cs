@@ -60,7 +60,8 @@ namespace DocumentLoader.GenAIWorker
                     {
                         DocumentId = ocrResult.DocumentId,
                         ObjectName = ocrResult.ObjectName,
-                        SummaryText = summary
+                        SummaryText = summary,
+                        RawOcrText = ocrResult.OcrText
                     };
 
                     // Publish to summary queue

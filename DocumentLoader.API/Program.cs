@@ -5,8 +5,16 @@ using DocumentLoader.RabbitMQ;
 using Minio;
 using Microsoft.EntityFrameworkCore;
 using DocumentLoader.Core.Services;
+using Elastic.Clients.Elasticsearch;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var elasticSettings = new ElasticsearchClientSettings(new Uri("http://elasticsearch:9200"))
+    .DefaultIndex("documents");
+
+var client = new ElasticsearchClient(elasticSettings);
+
+builder.Services.AddSingleton(client);
 
 // -------------------------------
 // Register DbContext with PostgreSQL

@@ -11,6 +11,8 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Nodes;
 
 
 namespace DocumentLoader.API.Controllers
@@ -25,8 +27,9 @@ namespace DocumentLoader.API.Controllers
         private readonly ILogger _logger;
         private readonly IRabbitMqPublisher _publisher;
         private const string BucketName = "uploads";
+        private readonly ElasticsearchClient _elasticClient;
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher, ElasticsearchClient client)
         {
             _repository = repository;
             _logger = logger;
@@ -37,6 +40,7 @@ namespace DocumentLoader.API.Controllers
                 .WithSSL(false)
                 .Build();
             _publisher = publisher;
+            _elasticClient = client;
         }
 
         [HttpPost("upload")]
@@ -98,23 +102,91 @@ namespace DocumentLoader.API.Controllers
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? query)
         {
-
-            // Simple search: return all documents where FileName or Summary contains the query
-            var allDocs = await _repository.GetAllAsync();
+            // analytics log
+            _logger.LogInformation("ANALYTICS_EVENT: SearchAttempt | Query: {query}", query ?? "ALL_DOCS");
 
             if (string.IsNullOrWhiteSpace(query))
-                return Ok(new { results = allDocs }); //TODO: DAL get every datapoint
-
-            var results = allDocs
-                .Where(d => d.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
-                         || d.Summary.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .Select(d => new { d.Id, d.FileName, d.Summary });
-
-            return Ok(new
             {
-                Query = query,
-                Results = results
-            });
+                // initalload from database without search
+                var allDocs = await _repository.GetAllAsync();
+                return Ok(new { results = allDocs });
+            }
+
+            // uses elasticsearch for searching documents
+            var response = await _elasticClient.SearchAsync<Models.Document>(s => s
+                .Index("documents")
+                .Query(q => q
+                    .MultiMatch(m => m
+                        .Fields(new[] { "fileName", "summary", "content" }) 
+                        .Query(query)
+                        .Fuzziness(new Fuzziness(2))
+                    )
+                )
+            );
+
+            if (!response.IsSuccess()) return StatusCode(500, "Elasticsearch error");
+
+            return Ok(new { results = response.Documents });
+        }
+
+        [HttpPost("searches/querystring")]
+        public async Task<IActionResult> SearchByQueryString([FromBody] string searchTerm)
+        {
+            // Analytics Log für Swen
+            _logger.LogInformation("ANALYTICS_EVENT: WildcardSearch | Term: {term}", searchTerm);
+
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return BadRequest(new { message = "Search term cannot be empty" });
+
+            // Suche über QueryString (erlaubt Wildcards wie *test*)
+            var response = await _elasticClient.SearchAsync<Models.Document>(s => s
+                .Index("documents")
+                .Query(q => q
+                    .QueryString(qs => qs
+                        .Query($"*{searchTerm}*")
+                    // Sucht standardmäßig in allen Feldern, wenn nicht anders definiert
+                    )
+                )
+            );
+
+            return HandleSearchResponse(response);
+        }
+
+        // Fuzzy-Search with Match(Normalisation)
+        [HttpPost("searches/fuzzy")]
+        public async Task<IActionResult> SearchByFuzzy([FromBody] string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return BadRequest(new { message = "Search term cannot be empty" });
+            }
+            _logger.LogInformation("ANALYTICS_EVENT: Search | Term: {term} | Time: {time}", searchTerm, DateTime.UtcNow);
+
+            var response = await _elasticClient.SearchAsync<dynamic>(s => s
+                .Index("documents")
+                .Query(q => q
+                    .MultiMatch(m => m
+                        .Fields(new[] { "fileName", "summary", "content" }) // Sucht überall!
+                        .Query(searchTerm)
+                        .Fuzziness(new Fuzziness(2))
+                    )
+                )
+            );
+            if (!response.IsSuccess()) return StatusCode(500, "Elasticsearch error");
+
+            return Ok(new { results = response.Documents });
+        }
+        private IActionResult HandleSearchResponse(SearchResponse<Models.Document> response)
+        {
+            if (response.IsValidResponse)
+            {
+                // Wenn Dokumente da sind, gib sie zurück, sonst leere Liste (oder NotFound)
+                return Ok(response.Documents);
+            }
+
+            // Wenn Elastic schiefgeht (z.B. Container down)
+            _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
+            return StatusCode(500, new { message = "Failed to search documents", details = response.DebugInformation });
         }
 
 

@@ -182,6 +182,9 @@ services:
     command: run-once
     volumes: *batch-volumes
     profiles: ["tools"]
+    networks:
+      - appnet
+   
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     environment:

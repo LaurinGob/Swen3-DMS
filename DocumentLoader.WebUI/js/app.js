@@ -205,7 +205,7 @@ export function initDetails() {
             const poller = setInterval(async () => {
                 const res = await fetch(`${API_BASE}/${id}`);
 
-                // 🚨 If this returns HTML, your routing is broken
+                
                 const doc = await res.json();
 
                 if (doc.summary && doc.summary.trim() !== "") {

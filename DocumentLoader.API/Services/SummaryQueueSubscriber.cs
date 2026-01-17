@@ -1,6 +1,7 @@
 ﻿using DocumentLoader.DAL.Repositories;
 using DocumentLoader.Models;
 using DocumentLoader.RabbitMQ;
+using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -13,11 +14,13 @@ namespace DocumentLoader.API.Services
     {
         private readonly ILogger<SummaryQueueSubscriber> _logger;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ElasticsearchClient _elasticsearchClient;
 
-        public SummaryQueueSubscriber(ILogger<SummaryQueueSubscriber> logger, IServiceProvider serviceProvider)
+        public SummaryQueueSubscriber(ILogger<SummaryQueueSubscriber> logger, IServiceProvider serviceProvider, ElasticsearchClient elasticsearchClient)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _elasticsearchClient = elasticsearchClient;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,8 +30,8 @@ namespace DocumentLoader.API.Services
                 _logger.LogInformation($"[API] Received summary message: {message}");
                 try
                 {
-                    var job = JsonSerializer.Deserialize<SummaryResult>(message);
-                    if (job == null)
+                    var result = JsonSerializer.Deserialize<SummaryResult>(message);
+                    if (result == null)
                     {
                         _logger.LogWarning("[API] Received invalid GenAI summary job message.");
                         return;
@@ -38,8 +41,18 @@ namespace DocumentLoader.API.Services
                     using var scope = _serviceProvider.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
 
-                    await repository.UpdateSummaryAsync(job);
-                    _logger.LogInformation("[API] Summary updated for DocumentId {docId}", job.DocumentId);
+                    await repository.UpdateSummaryAsync(result);
+
+                    var searchData = new
+                    {
+                        Id = result.DocumentId,
+                        FileName = result.ObjectName,
+                        Summary = result.SummaryText,
+                        Content = result.RawOcrText, // Hier landet der große Text!
+                        IndexedAt = DateTime.UtcNow
+                    };
+                    await _elasticsearchClient.IndexAsync(searchData, i => i.Index("documents"));
+                    _logger.LogInformation("[API] Summary update for DocumentId {docId} and indexed in elastic", result.DocumentId);
                 }
                 catch (System.Exception ex)
                 {
