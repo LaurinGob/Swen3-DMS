@@ -1,16 +1,18 @@
 @echo off
 set "API_URL=http://localhost:5000/api/Documents"
 set "TEST_FILE=test-document.pdf"
+set "USER=AdminUser"
 
 echo =======================================================
 echo DMS INTEGRATION TEST: Use Case Document Upload
 echo =======================================================
 
 :: 1. Schritt: Upload
-echo [STEP 1] Uploading file '%TEST_FILE%'...
+echo [STEP 1] Uploading file '%TEST_FILE%' as User '%USER%'...
 curl -X POST "%API_URL%/upload" ^
      -H "Content-Type: multipart/form-data" ^
-     -F "file=@%TEST_FILE%"
+     -F "file=@%TEST_FILE%" ^
+     -F "username=%USER%"
 echo.
 echo.
 
