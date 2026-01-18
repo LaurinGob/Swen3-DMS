@@ -2,9 +2,11 @@ name: .NET CI
 
 on:
   push:
-    branches: [ "pipelineFixes" ]
+    branches:
+      - pipelineFixes
   pull_request:
-    branches: [ "pipelineFixes" ]
+    branches:
+      - pipelineFixes
 
 jobs:
   build-test-lint:
