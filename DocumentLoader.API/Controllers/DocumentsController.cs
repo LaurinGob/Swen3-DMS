@@ -96,37 +96,43 @@ namespace DocumentLoader.API.Controllers
             }
         }
 
-   
+
 
         // Search endpoint (basic example using repository)
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? query)
         {
-            // analytics log
-            _logger.LogInformation("ANALYTICS_EVENT: SearchAttempt | Query: {query}", query ?? "ALL_DOCS");
-
-            if (string.IsNullOrWhiteSpace(query))
+            try
             {
-                // initalload from database without search
-                var allDocs = await _repository.GetAllAsync();
-                return Ok(new { results = allDocs });
-            }
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    var allDocs = await _repository.GetAllAsync();
+                    return Ok(new { results = allDocs ?? new List<Models.Document>() });
+                }
 
-            // uses elasticsearch for searching documents
-            var response = await _elasticClient.SearchAsync<Models.Document>(s => s
-                .Index("documents")
-                .Query(q => q
-                    .MultiMatch(m => m
-                        .Fields(new[] { "fileName", "summary", "content" }) 
+                var response = await _elasticClient.SearchAsync<Models.Document>(s => s
+                    .Index("documents")
+                    .Query(q => q.MultiMatch(m => m
+                        .Fields(new[] { "fileName", "summary", "content" })
                         .Query(query)
-                        .Fuzziness(new Fuzziness(2))
-                    )
-                )
-            );
+                        .Fuzziness(new Fuzziness(2))))
+                );
 
-            if (!response.IsSuccess()) return StatusCode(500, "Elasticsearch error");
+                // Falls der Index fehlt oder ein Fehler auftritt, schicken wir eine leere Liste statt 500
+                if (!response.IsSuccess())
+                {
+                    _logger.LogWarning("Elasticsearch Suche nicht erfolgreich: {debug}", response.DebugInformation);
+                    return Ok(new { results = new List<Models.Document>() });
+                }
 
-            return Ok(new { results = response.Documents });
+                return Ok(new { results = response.Documents });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler im Search-Endpoint");
+                // Auch im totalen Fehlerfall: Gib eine leere Liste zurück, damit JS nicht crasht
+                return Ok(new { results = new List<Models.Document>(), error = ex.Message });
+            }
         }
 
         [HttpPost("searches/querystring")]
@@ -162,7 +168,7 @@ namespace DocumentLoader.API.Controllers
             }
             _logger.LogInformation("ANALYTICS_EVENT: Search | Term: {term} | Time: {time}", searchTerm, DateTime.UtcNow);
 
-            var response = await _elasticClient.SearchAsync<dynamic>(s => s
+            var response = await _elasticClient.SearchAsync<Models.Document>(s => s
                 .Index("documents")
                 .Query(q => q
                     .MultiMatch(m => m
@@ -180,11 +186,11 @@ namespace DocumentLoader.API.Controllers
         {
             if (response.IsValidResponse)
             {
-                // Wenn Dokumente da sind, gib sie zurück, sonst leere Liste (oder NotFound)
+                // return documents if there 
                 return Ok(response.Documents);
             }
 
-            // Wenn Elastic schiefgeht (z.B. Container down)
+            // if elasticsearch fails)
             _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
             return StatusCode(500, new { message = "Failed to search documents", details = response.DebugInformation });
         }

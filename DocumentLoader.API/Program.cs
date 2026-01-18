@@ -14,6 +14,20 @@ var elasticSettings = new ElasticsearchClientSettings(new Uri("http://elasticsea
 
 var client = new ElasticsearchClient(elasticSettings);
 
+try
+{
+    var existsResponse = await client.Indices.ExistsAsync("documents");
+    if (!existsResponse.Exists)
+    {
+        await client.Indices.CreateAsync("documents");
+        Console.WriteLine("Elasticsearch Index 'documents' wurde erstellt.");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Elasticsearch Startup Fehler: {ex.Message}");
+}
+
 builder.Services.AddSingleton(client);
 
 // -------------------------------
