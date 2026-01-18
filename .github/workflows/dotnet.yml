@@ -2,9 +2,9 @@ name: .NET CI
 
 on:
   push:
-    branches: [ "main", "webui", "unitTesting", "rabbitMq" ]
+    branches: [ "pipelineFixes" ]
   pull_request:
-    branches: [ "main", "webui", "unitTesting", "rabbitmq" ]
+    branches: [ "pipelineFixes" ]
 
 jobs:
   build-test-lint:
