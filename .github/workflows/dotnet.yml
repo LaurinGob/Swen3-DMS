@@ -2,9 +2,11 @@ name: .NET CI
 
 on:
   push:
-    branches: [ "main", "webui", "unitTesting", "rabbitMq" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main", "webui", "unitTesting", "rabbitmq" ]
+    branches:
+      - main
 
 jobs:
   build-test-lint:
