@@ -226,13 +226,9 @@ namespace DocumentLoader.API.Controllers
         public async Task<IActionResult> Update([FromBody] UpdateDocumentDto dto)
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
-            if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest();
 
-            await _repository.UpdateAsync(new Models.Document
-            {
-                Id = dto.DocumentId,
-                Summary = dto.Content
-            });
+            // Nutze die neue Methode, die nur die Summary updated
+            await _repository.UpdateAsync(dto.DocumentId, dto.Content);
 
             return Ok($"Document with ID {dto.DocumentId} has been updated");
 

@@ -7,7 +7,7 @@ namespace DocumentLoader.DAL.Repositories
         Task<Document> AddAsync(Document doc);
         Task<Document?> GetByIdAsync(int id);
         Task<IEnumerable<Document>> GetAllAsync();
-        Task UpdateAsync(Document doc);
+        Task UpdateAsync(int id, string newSummary);
         Task UpdateSummaryAsync(SummaryResult summary);
         Task DeleteAsync(int id);
     }

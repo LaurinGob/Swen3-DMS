@@ -44,10 +44,14 @@ namespace DocumentLoader.DAL.Repositories
             return await _context.Documents.FindAsync(id);
         }
 
-        public async Task UpdateAsync(Document doc)
+        public async Task UpdateAsync(int id, string newSummary)
         {
-            _context.Documents.Update(doc);
-            await _context.SaveChangesAsync();
+            var existing = await _context.Documents.FindAsync(id);
+            if (existing != null)
+            {
+                existing.Summary = newSummary;
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task UpdateSummaryAsync(SummaryResult summary)
