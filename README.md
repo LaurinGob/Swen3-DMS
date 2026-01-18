@@ -28,8 +28,9 @@ Ein modernes Dokumenten-Management-System mit automatischer OCR-Verarbeitung, KI
 
 ### Batch Processing starten
 Zuerst Batch Files generieren
+```bash
 docker compose build batch-gen
-
+```
 ### Schritt 1: Infrastruktur starten
 Starte die benötigten Dienste (Datenbank, RabbitMQ, Elastic, MinIO) über Docker Compose:
 ```bash
