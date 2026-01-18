@@ -48,13 +48,13 @@ namespace DocumentLoader.API.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
-            if(string.IsNullOrWhiteSpace(username))
+            if (string.IsNullOrWhiteSpace(username))
                 return BadRequest("Username is required.");
             try
             {
                 var user = await _userRepository.GetOrCreateUserAsync(username);
                 // Ensure bucket exists
-                bool exists =  await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
+                bool exists = await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
                 if (!exists)
                 {
                     await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(BucketName));
@@ -89,7 +89,7 @@ namespace DocumentLoader.API.Controllers
                 // Serialize and publish
                 await _publisher.PublishAsync(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
-                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName, CreatedBy = user.Username});
+                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName, CreatedBy = user.Username });
 
             }
             catch (Exception ex)
@@ -130,7 +130,8 @@ namespace DocumentLoader.API.Controllers
                     documents = response.Documents;
                 }
 
-                var formattedResults = documents.Select(d => new {
+                var formattedResults = documents.Select(d => new
+                {
                     d.Id,
                     d.FileName,
                     d.Summary,
@@ -203,14 +204,15 @@ namespace DocumentLoader.API.Controllers
                 // return documents if there 
                 return MapAndReturnResults(response.Documents);
             }
-                // if elasticsearch fails
-                _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
+            // if elasticsearch fails
+            _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
             return StatusCode(500, new { message = "Failed to search documents", details = response.DebugInformation });
         }
 
         private IActionResult MapAndReturnResults(IEnumerable<Models.Document> documents)
         {
-            var formattedResults = documents.Select(d => new {
+            var formattedResults = documents.Select(d => new
+            {
                 d.Id,
                 d.FileName,
                 d.Summary,
@@ -234,7 +236,7 @@ namespace DocumentLoader.API.Controllers
                 await _repository.DeleteAsync(id);
                 return Ok("Document with the provided id " + document_id + " has been deleted");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"Internal server error: {ex.Message}, Document could not be deleted" });
             }
@@ -300,7 +302,7 @@ namespace DocumentLoader.API.Controllers
             if (doc == null)
                 return NotFound();
 
-           _logger.LogDebug(doc.Id, doc.FileName, doc.Summary);
+            _logger.LogDebug(doc.Id, doc.FileName, doc.Summary);
 
             return Ok(new
             {

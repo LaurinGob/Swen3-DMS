@@ -14,8 +14,8 @@ namespace DocumentLoader.UnitTests
         {
             //connection changed to localhost for tests
             Environment.SetEnvironmentVariable("RabbitMQ__Host", "localhost");
-            Environment.SetEnvironmentVariable("RabbitMQ__User", "myuser"); 
-            Environment.SetEnvironmentVariable("RabbitMQ__Password", "mypassword"); 
+            Environment.SetEnvironmentVariable("RabbitMQ__User", "myuser");
+            Environment.SetEnvironmentVariable("RabbitMQ__Password", "mypassword");
         }
         [Test]
         public async Task RabbitMq_FullRoundtrip_WorksCorrectly()
@@ -33,7 +33,7 @@ namespace DocumentLoader.UnitTests
             //start subscriber
             await subscriber.SubscribeAsync(testQueue, async (msg) =>
             {
-                messageReceivedTask.SetResult(msg); 
+                messageReceivedTask.SetResult(msg);
                 await Task.CompletedTask;
             });
 

@@ -18,7 +18,7 @@ namespace DocumentLoader.UnitTests
         private Mock<ILogger<AccessLogService>> _mockLogger = null!;
         private AccessLogService _service = null!;
 
-    
+
 
         [SetUp]
         public void SetUp()
@@ -88,7 +88,7 @@ namespace DocumentLoader.UnitTests
             var dtos = new List<DailyAccessDto>
             {
                 new DailyAccessDto { DocumentId = 1, Date = new DateOnly(2024,1,1) },
-                new DailyAccessDto { DocumentId = 99, Date = new DateOnly(2024,1,1) } 
+                new DailyAccessDto { DocumentId = 99, Date = new DateOnly(2024,1,1) }
             };
 
             _mockDocRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Document { Id = 1 });

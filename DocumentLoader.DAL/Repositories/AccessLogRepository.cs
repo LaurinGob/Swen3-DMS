@@ -13,7 +13,7 @@ namespace DocumentLoader.DAL.Repositories
         public AccessLogRepository(ILogger<AccessLogRepository> logger, DocumentDbContext db)
         {
             _logger = logger;
-            _db = db; 
+            _db = db;
         }
 
         public async Task<DailyAccess?> GetAsync(int documentId, DateOnly date)

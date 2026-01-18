@@ -45,7 +45,7 @@ namespace DocumentLoader.DAL.Repositories
         public async Task<Document?> GetByIdAsync(int id)
         {
             return await _context.Documents
-                .Include(d => d.User) 
+                .Include(d => d.User)
                 .FirstOrDefaultAsync(d => d.Id == id);
         }
 

@@ -22,18 +22,18 @@ namespace DocumentLoader.DAL
 
             //foreign key to Document 
             modelBuilder.Entity<DailyAccess>()
-                .HasOne<Document>()           
+                .HasOne<Document>()
                 .WithMany()
                 .HasForeignKey(d => d.DocumentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Document>()
-                .HasOne(d => d.User)           
-                .WithMany(u => u.Documents)    
-                .HasForeignKey(d => d.UserId)  
+                .HasOne(d => d.User)
+                .WithMany(u => u.Documents)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         }
 
-      
+
     }
 }

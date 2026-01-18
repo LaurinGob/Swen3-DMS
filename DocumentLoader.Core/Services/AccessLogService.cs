@@ -28,7 +28,7 @@ namespace DocumentLoader.Core.Services
             // validate that document exists
             var document = await _documentRepo.GetByIdAsync(documentId);
             if (document == null)
-            throw new InvalidOperationException($"Document {documentId} not found");
+                throw new InvalidOperationException($"Document {documentId} not found");
 
 
             // Idempotent upsert

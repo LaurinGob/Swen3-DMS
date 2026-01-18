@@ -47,7 +47,7 @@ public class OldOcrWorkerService : BackgroundService
 
                 // Simulate OCR processing
                 await Task.Delay(2000, stoppingToken);
-                
+
                 _logger.LogInformation($"OCR processed document {message}");
             }
             catch (Exception ex)

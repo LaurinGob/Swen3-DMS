@@ -14,9 +14,9 @@ builder.Services.AddSingleton<IRabbitMqSubscriber, RabbitMqSubscriber>();
 // register MinIO client
 builder.Services.AddSingleton<IMinioClient>(sp =>
     new MinioClient()
-        .WithEndpoint("minio", 9000)       
+        .WithEndpoint("minio", 9000)
         .WithCredentials("minioadmin", "minioadmin")
-        .WithSSL(false)                   
+        .WithSSL(false)
         .Build());
 
 

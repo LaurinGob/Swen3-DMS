@@ -21,7 +21,7 @@ class Program
     static async Task Main(string[] args)
     {
         Console.WriteLine("=== Batch Processing Demo ===");
-        
+
 
         var basePath = AppContext.BaseDirectory;
 
@@ -29,7 +29,7 @@ class Program
         var inputFolder = Environment.GetEnvironmentVariable("BATCH_INPUT_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchInput");
         var archiveFolder = Environment.GetEnvironmentVariable("BATCH_ARCHIVE_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchArchive");
         var errorFolder = Path.Combine(Environment.GetEnvironmentVariable("BATCH_ERROR_PATH") ?? Path.Combine(AppContext.BaseDirectory, "BatchError"));
-        
+
         Directory.CreateDirectory(inputFolder);
         Directory.CreateDirectory(archiveFolder);
         Directory.CreateDirectory(errorFolder);
@@ -158,7 +158,7 @@ class Program
             var fakeEntries = Enumerable.Range(1, 5).Select(n => new
             {
                 DocumentId = rnd.Next(1, 40),
-                AccessCount = rnd.Next(1, 50)   
+                AccessCount = rnd.Next(1, 50)
             }).ToList();
             Console.WriteLine($"{fakeEntries}");
 

@@ -69,7 +69,7 @@ builder.Services.AddSingleton<IMinioClient>(sp =>
     return new MinioClient()
         .WithEndpoint(endpoint)
         .WithCredentials(accessKey, secretKey)
-        .WithSSL(false) 
+        .WithSSL(false)
         .Build();
 });
 

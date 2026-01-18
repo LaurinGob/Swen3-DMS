@@ -60,9 +60,9 @@ namespace DocumentLoader.API.Services
                             }
                         };
                         await _elasticsearchClient.IndexAsync(searchData, i => i.Index("documents"));
-                        _logger.LogInformation("[API] Summary update for DocumentId {docId} and indexed in elastic", result.DocumentId, fullDoc.User?.Username);
+                        _logger.LogInformation("[API] Summary update for DocumentId {docId} and indexed in elastic", result.DocumentId);
                     }
-                    
+
                 }
                 catch (System.Exception ex)
                 {

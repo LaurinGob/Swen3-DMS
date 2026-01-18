@@ -95,7 +95,7 @@ namespace DocumentLoader.BatchProcessing
         {
             var xdoc = XDocument.Load(path);
             var root = xdoc.Root ?? throw new InvalidDataException("Missing root element.");
-           
+
 
             var batchDateAttr = root.Attribute("batchDate")?.Value
                 ?? throw new InvalidDataException("Missing 'batchDate' attribute.");
@@ -111,7 +111,7 @@ namespace DocumentLoader.BatchProcessing
                     var countStr = e.Attribute("accessCount")?.Value
                         ?? throw new InvalidDataException("Missing 'accessCount'.");
 
-                   
+
                     if (!int.TryParse(docIdStr, out var docId))
                         throw new InvalidDataException($"Invalid documentId: {docIdStr}");
 

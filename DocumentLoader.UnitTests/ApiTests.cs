@@ -90,7 +90,7 @@ namespace DocumentLoader.UnitTests
             {
                 Assert.Fail($"Controller crashed with 500: {obj.Value}");
             }
-            
+
             Assert.That(result, Is.TypeOf<CreatedResult>());
         }
 
@@ -196,12 +196,12 @@ namespace DocumentLoader.UnitTests
             {
                 Id = docId,
                 FileName = "test.pdf",
-                Summary = "" 
+                Summary = ""
             };
 
             _mockRepo.Setup(r => r.GetByIdAsync(docId)).ReturnsAsync(doc);
 
-           
+
             _mockPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<string>()))
                           .Returns(Task.CompletedTask);
 
@@ -211,7 +211,7 @@ namespace DocumentLoader.UnitTests
             // Assert
             Assert.That(result, Is.TypeOf<AcceptedResult>());
 
-            
+
             _mockPublisher.Verify(p => p.PublishAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 It.Is<string>(s => s.Contains($"\"DocumentId\":{docId}"))
@@ -237,7 +237,7 @@ namespace DocumentLoader.UnitTests
 
             // Assert
             Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-            
+
             _mockPublisher.Verify(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
@@ -287,7 +287,7 @@ namespace DocumentLoader.UnitTests
             // Assert
             Assert.That(result, Is.TypeOf<OkObjectResult>());
             var okResult = result as OkObjectResult;
-          
+
             Assert.That(okResult!.Value!.ToString()!.Contains("1"), Is.True);
         }
 

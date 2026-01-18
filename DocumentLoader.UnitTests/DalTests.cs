@@ -125,7 +125,7 @@ namespace DocumentLoader.UnitTests
             var doc = new Document { FileName = "important.pdf", Summary = "Old Summary" };
             _context.Documents.Add(doc);
             await _context.SaveChangesAsync();
-            _context.Entry(doc).State = EntityState.Detached; 
+            _context.Entry(doc).State = EntityState.Detached;
 
             // Act
             await _docRepository.UpdateAsync(doc.Id, "New Summary");
@@ -133,7 +133,7 @@ namespace DocumentLoader.UnitTests
             // Assert
             var updated = await _context.Documents.FindAsync(doc.Id);
             Assert.That(updated!.Summary, Is.EqualTo("New Summary"));
-            Assert.That(updated.FileName, Is.EqualTo("important.pdf")); 
+            Assert.That(updated.FileName, Is.EqualTo("important.pdf"));
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace DocumentLoader.UnitTests
 
             // Assert
             var count = await _context.Users.CountAsync();
-            Assert.That(count, Is.EqualTo(1)); 
+            Assert.That(count, Is.EqualTo(1));
             Assert.That(result.Username, Is.EqualTo(username));
         }
 

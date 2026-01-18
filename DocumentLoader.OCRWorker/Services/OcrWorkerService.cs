@@ -120,7 +120,7 @@ namespace DocumentLoader.OCRWorker.Services
             var sb = new StringBuilder();
             var tessdata = Environment.GetEnvironmentVariable("TESSDATA_PREFIX")
               ?? "/usr/share/tesseract-ocr/5/tessdata/";
-           
+
             using var engine = new TesseractEngine(tessdata, "deu+eng", EngineMode.LstmOnly);
 
             engine.DefaultPageSegMode = PageSegMode.Auto;
