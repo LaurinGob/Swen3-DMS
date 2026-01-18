@@ -39,4 +39,4 @@ jobs:
         run: dotnet format Swen3-DMS.sln --verify-no-changes --verbosity diagnostic
 
       - name: Test
-        run: dotnet test Swen3-DMS.sln --no-build --verbosity normal
+        run: dotnet test Swen3-DMS.sln --configuration Release --verbosity normal
