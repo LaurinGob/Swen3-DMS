@@ -38,12 +38,7 @@ class Program
         Console.WriteLine($"Archive Folder: {archiveFolder}");
         Console.WriteLine($"Error Folder: {errorFolder}");
 
-        //var projectRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
-        //var inputFolder = Path.Combine(projectRoot, "BatchInput");
-        //var archiveFolder = Path.Combine(projectRoot, "BatchArchive");
-        //var errorFolder = Path.Combine(projectRoot, "BatchError");
-
-        // --- 1) Setup DI ---
+        // Setup DI 
         var services = new ServiceCollection();
 
         services.AddCoreServices();
@@ -94,10 +89,8 @@ class Program
         // Build service provider
         var serviceProvider = services.BuildServiceProvider();
 
-        // --- 2) Resolve processor ---
         var processor = serviceProvider.GetRequiredService<AccessLogBatchProcessor>();
 
-        // --- 3) Determine mode ---
         var mode = args.FirstOrDefault()?.ToLowerInvariant() ?? "run-once";
 
         switch (mode)
@@ -109,7 +102,7 @@ class Program
 
             case "quartz":
                 Console.WriteLine("Running batch processor with Quartz scheduler...");
-                var cron = "0/10 * * * * ?"; // every 2 minutes
+                var cron = "0/10 * * * * ?"; // every 10 seconds
                 await RunQuartzAsync(processor, cron);
                 break;
 
@@ -138,7 +131,7 @@ class Program
 
         var goldenEntries = Enumerable.Range(1, 6).Select(i => new
         {
-            Id = validIds[i % validIds.Length], // Use exactly your valid IDs
+            Id = validIds[i % validIds.Length],
             Count = rnd.Next(10, 50)
         }).ToList();
 
@@ -158,15 +151,12 @@ class Program
         {
             var batchDate = today.AddDays(-i); // today, yesterday, the day before
 
-            // Use a timestamp to make each file name unique, so files in the archive
-            // are not overwritten when we generate again.
             var fileName = $"access-{batchDate:yyyy-MM-dd}.xml";
             var fullPath = Path.Combine(inputFolder, fileName);
 
             // Create some fake entries
             var fakeEntries = Enumerable.Range(1, 5).Select(n => new
             {
-                // Use integers because your Processor uses int.TryParse
                 DocumentId = rnd.Next(1, 40),
                 AccessCount = rnd.Next(1, 50)   
             }).ToList();

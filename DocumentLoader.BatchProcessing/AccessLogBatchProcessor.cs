@@ -71,7 +71,7 @@ namespace DocumentLoader.BatchProcessing
                 var (batchDate, entries) = ReadXml(path);
                 _logger.LogInformation($"Read {entries.Count} entries for batch date {batchDate}.");
 
-                // 1. Convert our internal record list to the DTO list the API expects
+                //convert to DTOs
                 var dtos = entries.Select(e => new DailyAccessDto
                 {
                     DocumentId = e.DocumentId,
@@ -79,7 +79,6 @@ namespace DocumentLoader.BatchProcessing
                     Date = batchDate
                 }).ToList();
 
-                // 2. Call the NEW bulk sink method (No more loop here!)
                 await _sink.StoreBatchAsync(dtos);
 
                 _logger.LogInformation($"Successfully processed and synced batch for {fileName}");
@@ -112,7 +111,7 @@ namespace DocumentLoader.BatchProcessing
                     var countStr = e.Attribute("accessCount")?.Value
                         ?? throw new InvalidDataException("Missing 'accessCount'.");
 
-                    // Parse as int instead of Guid
+                   
                     if (!int.TryParse(docIdStr, out var docId))
                         throw new InvalidDataException($"Invalid documentId: {docIdStr}");
 

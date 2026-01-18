@@ -58,15 +58,18 @@ builder.Services.AddScoped<IAccessLogService, AccessLogService>();
 // -------------------------------
 // Register MinIO client singleton
 // -------------------------------
-builder.Services.AddSingleton<MinioClient>(sp =>
+// Ändere <MinioClient> zu <IMinioClient>
+builder.Services.AddSingleton<IMinioClient>(sp =>
 {
     var endpoint = builder.Configuration["Minio:Endpoint"] ?? "localhost:9000";
     var accessKey = builder.Configuration["Minio:AccessKey"] ?? "minioadmin";
     var secretKey = builder.Configuration["Minio:SecretKey"] ?? "minioadmin";
 
-    return (MinioClient)new MinioClient()
+    // Build() gibt bereits ein IMinioClient-kompatibles Objekt zurück
+    return new MinioClient()
         .WithEndpoint(endpoint)
         .WithCredentials(accessKey, secretKey)
+        .WithSSL(false) // Wichtig für lokale Entwicklung/Docker ohne Zertifikat
         .Build();
 });
 

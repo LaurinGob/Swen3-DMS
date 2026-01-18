@@ -29,16 +29,12 @@ namespace DocumentLoader.API.Controllers
         private const string BucketName = "uploads";
         private readonly ElasticsearchClient _elasticClient;
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher, ElasticsearchClient client)
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher, ElasticsearchClient client, IMinioClient minioClient)
         {
             _repository = repository;
             _logger = logger;
             _service = service;
-            _minioClient = new MinioClient()
-                .WithEndpoint("minio", 9000)
-                .WithCredentials("minioadmin", "minioadmin")
-                .WithSSL(false)
-                .Build();
+            _minioClient = minioClient;
             _publisher = publisher;
             _elasticClient = client;
         }
