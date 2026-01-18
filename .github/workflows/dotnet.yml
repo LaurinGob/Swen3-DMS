@@ -3,10 +3,10 @@ name: .NET CI
 on:
   push:
     branches:
-      - pipelineFixes
+      - main
   pull_request:
     branches:
-      - pipelineFixes
+      - main
 
 jobs:
   build-test-lint:
