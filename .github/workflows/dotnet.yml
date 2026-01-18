@@ -9,6 +9,14 @@ on:
 jobs:
   build-test-lint:
     runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+        env:
+          RABBITMQ_DEFAULT_USER: myuser
+          RABBITMQ_DEFAULT_PASS: mypassword
 
     steps:
       - name: Checkout repository
@@ -26,7 +34,7 @@ jobs:
         run: dotnet build Swen3-DMS.sln --configuration Release --no-restore
 
       - name: Code formatting check
-        run: dotnet format --verify-no-changes --verbosity diagnostic
+        run: dotnet format Swen3-DMS.sln --verify-no-changes --verbosity diagnostic
 
       - name: Test
         run: dotnet test Swen3-DMS.sln --no-build --verbosity normal
