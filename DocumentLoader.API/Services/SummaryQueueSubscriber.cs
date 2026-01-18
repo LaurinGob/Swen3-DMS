@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DocumentLoader.API.Services
+namespace DocumentLoader.API.Services // summary queue subscriber service
 {
     public class SummaryQueueSubscriber : BackgroundService
     {
