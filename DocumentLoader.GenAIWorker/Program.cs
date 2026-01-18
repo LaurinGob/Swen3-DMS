@@ -6,19 +6,17 @@ using Microsoft.Extensions.Logging;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Logging konfigurieren
+// configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// 1. RabbitMQ Komponenten registrieren (Interface zu Klasse)
-// Ohne diese Zeilen kann der GenAIWorkerService nicht starten!
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<IRabbitMqSubscriber, RabbitMqSubscriber>();
 
-// 2. GeminiService registrieren
+// register geminiservice
 builder.Services.AddSingleton<GeminiService>();
 
-// 3. Den Worker registrieren
+// register worker service
 builder.Services.AddHostedService<GenAIWorkerService>();
 
 var app = builder.Build();

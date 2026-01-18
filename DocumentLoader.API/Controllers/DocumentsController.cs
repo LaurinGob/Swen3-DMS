@@ -22,6 +22,7 @@ namespace DocumentLoader.API.Controllers
     public class DocumentsController : ControllerBase
     {
         private readonly IDocumentRepository _repository;
+        private readonly IUserRepository _userRepository;
         private readonly IMinioClient _minioClient;
         private readonly IAccessLogService _service;
         private readonly ILogger _logger;
@@ -29,9 +30,11 @@ namespace DocumentLoader.API.Controllers
         private const string BucketName = "uploads";
         private readonly ElasticsearchClient _elasticClient;
 
-        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IAccessLogService service, IRabbitMqPublisher publisher, ElasticsearchClient client, IMinioClient minioClient)
+
+        public DocumentsController(ILogger<DocumentsController> logger, IDocumentRepository repository, IUserRepository userRepository, IAccessLogService service, IRabbitMqPublisher publisher, ElasticsearchClient client, IMinioClient minioClient)
         {
             _repository = repository;
+            _userRepository = userRepository;
             _logger = logger;
             _service = service;
             _minioClient = minioClient;
@@ -41,12 +44,15 @@ namespace DocumentLoader.API.Controllers
 
         [HttpPost("upload")]
         [RequestSizeLimit(100_000_000)]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload(IFormFile file, [FromForm] string username)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");
+            if(string.IsNullOrWhiteSpace(username))
+                return BadRequest("Username is required.");
             try
             {
+                var user = await _userRepository.GetOrCreateUserAsync(username);
                 // Ensure bucket exists
                 bool exists =  await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(BucketName));
                 if (!exists)
@@ -68,10 +74,10 @@ namespace DocumentLoader.API.Controllers
                 {
                     FileName = file.FileName,
                     FilePath = $"minio://{BucketName}/{file.FileName}",
-                    Summary = ""
+                    Summary = "",
+                    UserId = user.Id,
                 };
                 await _repository.AddAsync(document);
-                //await _publisher.PublishDocumentUploadedAsync(document);
 
                 var job = new OcrJob
                 {
@@ -83,7 +89,7 @@ namespace DocumentLoader.API.Controllers
                 // Serialize and publish
                 await _publisher.PublishAsync(RabbitMqQueues.OCR_QUEUE, JsonSerializer.Serialize(job));
 
-                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName });
+                return Created($"/documents/{document.Id}", new { document.Id, document.FileName, Bucket = BucketName, CreatedBy = user.Username});
 
             }
             catch (Exception ex)
@@ -100,34 +106,44 @@ namespace DocumentLoader.API.Controllers
         {
             try
             {
+                IEnumerable<Models.Document> documents;
+
                 if (string.IsNullOrWhiteSpace(query))
                 {
-                    var allDocs = await _repository.GetAllAsync();
-                    return Ok(new { results = allDocs ?? new List<Models.Document>() });
+                    documents = await _repository.GetAllAsync();
                 }
-
-                var response = await _elasticClient.SearchAsync<Models.Document>(s => s
-                    .Index("documents")
-                    .Query(q => q.MultiMatch(m => m
-                        .Fields(new[] { "fileName", "summary", "content" })
-                        .Query(query)
-                        .Fuzziness(new Fuzziness(2))))
-                );
-
-                // Falls der Index fehlt oder ein Fehler auftritt, schicken wir eine leere Liste statt 500
-                if (!response.IsSuccess())
+                else
                 {
-                    _logger.LogWarning("Elasticsearch Suche nicht erfolgreich: {debug}", response.DebugInformation);
-                    return Ok(new { results = new List<Models.Document>() });
+                    var response = await _elasticClient.SearchAsync<Models.Document>(s => s
+                        .Index("documents")
+                        .Query(q => q.MultiMatch(m => m
+                            .Fields(new[] { "fileName", "summary", "content", "user.username" })
+                            .Query(query)
+                            .Fuzziness(new Fuzziness(2))))
+                    );
+
+                    if (!response.IsSuccess())
+                    {
+                        _logger.LogWarning("Elasticsearch Suche nicht erfolgreich: {debug}", response.DebugInformation);
+                        return Ok(new { results = new List<object>() });
+                    }
+                    documents = response.Documents;
                 }
 
-                return Ok(new { results = response.Documents });
+                var formattedResults = documents.Select(d => new {
+                    d.Id,
+                    d.FileName,
+                    d.Summary,
+                    d.UploadedAt,
+                    Username = d.User?.Username ?? "System"
+                });
+
+                return Ok(new { results = formattedResults });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Fehler im Search-Endpoint");
-                // Auch im totalen Fehlerfall: Gib eine leere Liste zurück, damit JS nicht crasht
-                return Ok(new { results = new List<Models.Document>(), error = ex.Message });
+                return Ok(new { results = new List<object>(), error = ex.Message });
             }
         }
 
@@ -146,15 +162,16 @@ namespace DocumentLoader.API.Controllers
                 .Query(q => q
                     .QueryString(qs => qs
                         .Query($"*{searchTerm}*")
-                    // Sucht standardmäßig in allen Feldern, wenn nicht anders definiert
+                    // searches in all fields
                     )
                 )
+                .Sort(sort => sort.Field(f => f.UploadedAt, sc => sc.Order(SortOrder.Desc)))
             );
 
             return HandleSearchResponse(response);
         }
 
-        // Fuzzy-Search with Match(Normalisation)
+        // Fuzzy search
         [HttpPost("searches/fuzzy")]
         public async Task<IActionResult> SearchByFuzzy([FromBody] string searchTerm)
         {
@@ -168,11 +185,12 @@ namespace DocumentLoader.API.Controllers
                 .Index("documents")
                 .Query(q => q
                     .MultiMatch(m => m
-                        .Fields(new[] { "fileName", "summary", "content" }) // Sucht überall!
+                        .Fields(new[] { "fileName", "summary", "content", "user.username" }) //searches everywhere
                         .Query(searchTerm)
                         .Fuzziness(new Fuzziness(2))
                     )
                 )
+                .Sort(sort => sort.Field(f => f.UploadedAt, sc => sc.Order(SortOrder.Desc)))
             );
             if (!response.IsSuccess()) return StatusCode(500, "Elasticsearch error");
 
@@ -183,12 +201,24 @@ namespace DocumentLoader.API.Controllers
             if (response.IsValidResponse)
             {
                 // return documents if there 
-                return Ok(response.Documents);
+                return MapAndReturnResults(response.Documents);
             }
-
-            // if elasticsearch fails)
-            _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
+                // if elasticsearch fails
+                _logger.LogError("Elasticsearch search failed: {debug}", response.DebugInformation);
             return StatusCode(500, new { message = "Failed to search documents", details = response.DebugInformation });
+        }
+
+        private IActionResult MapAndReturnResults(IEnumerable<Models.Document> documents)
+        {
+            var formattedResults = documents.Select(d => new {
+                d.Id,
+                d.FileName,
+                d.Summary,
+                d.UploadedAt,
+                Username = d.User?.Username ?? "System"
+            });
+
+            return Ok(new { results = formattedResults });
         }
 
 
@@ -223,7 +253,7 @@ namespace DocumentLoader.API.Controllers
         {
             if (dto == null || dto.DocumentId <= 0) return BadRequest();
 
-            // Nutze die neue Methode, die nur die Summary updated
+            // update summary
             await _repository.UpdateAsync(dto.DocumentId, dto.Content);
 
             return Ok($"Document with ID {dto.DocumentId} has been updated");
@@ -277,7 +307,8 @@ namespace DocumentLoader.API.Controllers
                 id = doc.Id,
                 fileName = doc.FileName,
                 summary = doc.Summary,
-                uploadedAr = doc.UploadedAt
+                uploadedAt = doc.UploadedAt,
+                username = doc.User?.Username ?? "Unknown"
             });
 
         }

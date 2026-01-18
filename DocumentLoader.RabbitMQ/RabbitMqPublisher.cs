@@ -14,13 +14,13 @@ namespace DocumentLoader.RabbitMQ
 
         public async Task PublishAsync(string queueName, string message)
         {
-            // 1. Connection asynchron holen
+            // get connection async
             var connection = await RabbitMqConnectionProvider.Instance.GetConnectionAsync();
 
-            // 2. Channel asynchron erstellen (IChannel statt IModel in v7)
+            // make channel async
             using var channel = await connection.CreateChannelAsync();
 
-            // 3. Queue asynchron deklarieren
+            // declare Q async
             await channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
@@ -31,8 +31,7 @@ namespace DocumentLoader.RabbitMQ
 
             var body = Encoding.UTF8.GetBytes(message);
 
-            // 4. Nachricht asynchron senden
-            // In v7 sind die Parameter für BasicPublishAsync etwas direkter
+            //send massegs async
             await channel.BasicPublishAsync(
                 exchange: string.Empty, // Default Exchange
                 routingKey: queueName,

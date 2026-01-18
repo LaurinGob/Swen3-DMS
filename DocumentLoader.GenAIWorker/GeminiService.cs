@@ -57,7 +57,7 @@ namespace DocumentLoader.GenAIWorker
 
                     using var doc = JsonDocument.Parse(json);
 
-                    // 1️⃣ Check for quota/retry instructions
+                    //Check for quota/retry instructions
                     if (doc.RootElement.TryGetProperty("details", out var details) && details.ValueKind == JsonValueKind.Array)
                     {
                         foreach (var detail in details.EnumerateArray())
@@ -80,7 +80,7 @@ namespace DocumentLoader.GenAIWorker
                         }
                     }
 
-                    // 2️⃣ Parse the actual summary text
+                    // Parse summary text
                     if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
                         candidates.ValueKind == JsonValueKind.Array &&
                         candidates.GetArrayLength() > 0)
@@ -97,7 +97,7 @@ namespace DocumentLoader.GenAIWorker
                         }
                     }
 
-                    // 3️⃣ If parsing fails, log and return empty string (no retry)
+                    // if parsing fails log and return empty string
                     _logger.LogError("[GeminiService] API response did not contain expected keys. Returning empty summary.");
                     return "";
                 }

@@ -43,16 +43,26 @@ namespace DocumentLoader.API.Services
 
                     await repository.UpdateSummaryAsync(result);
 
-                    var searchData = new
+                    var fullDoc = await repository.GetByIdAsync(result.DocumentId);
+
+                    if (fullDoc != null)
                     {
-                        Id = result.DocumentId,
-                        FileName = result.ObjectName,
-                        Summary = result.SummaryText,
-                        Content = result.RawOcrText, // Hier landet der große Text!
-                        IndexedAt = DateTime.UtcNow
-                    };
-                    await _elasticsearchClient.IndexAsync(searchData, i => i.Index("documents"));
-                    _logger.LogInformation("[API] Summary update for DocumentId {docId} and indexed in elastic", result.DocumentId);
+                        var searchData = new
+                        {
+                            Id = result.DocumentId,
+                            FileName = result.ObjectName,
+                            Summary = result.SummaryText,
+                            Content = result.RawOcrText,
+                            IndexedAt = DateTime.UtcNow,
+                            User = new
+                            {
+                                Username = fullDoc.User?.Username ?? "System"
+                            }
+                        };
+                        await _elasticsearchClient.IndexAsync(searchData, i => i.Index("documents"));
+                        _logger.LogInformation("[API] Summary update for DocumentId {docId} and indexed in elastic", result.DocumentId, fullDoc.User?.Username);
+                    }
+                    
                 }
                 catch (System.Exception ex)
                 {
@@ -64,7 +74,7 @@ namespace DocumentLoader.API.Services
 
             try
             {
-                // Hält den Worker am Leben, bis das System ihn stoppt
+                //keeps worker alive
                 await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
             }
             catch (OperationCanceledException)

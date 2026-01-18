@@ -30,8 +30,6 @@ namespace DocumentLoader.RabbitMQ
 
         public async Task<IConnection> GetConnectionAsync()
         {
-            // Wir nutzen ein einfaches Lock oder prüfen auf null, 
-            // um sicherzustellen, dass nicht mehrere Verbindungen gleichzeitig geöffnet werden
             if (_connection == null || !_connection.IsOpen)
             {
                 _connection = await _factory.CreateConnectionAsync();
@@ -41,7 +39,6 @@ namespace DocumentLoader.RabbitMQ
 
         public void Dispose()
         {
-            // In v7 ist IConnection auch IAsyncDisposable, aber für Dispose machen wir es so:
             if (_connection != null)
             {
                 if (_connection.IsOpen) _connection.CloseAsync().GetAwaiter().GetResult();

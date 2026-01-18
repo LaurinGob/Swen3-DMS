@@ -12,7 +12,7 @@ using Tesseract;
 
 namespace DocumentLoader.OCRWorker.Services
 {
-    public class OcrWorkerService : BackgroundService
+    public class OcrWorkerService : BackgroundService // gets document from minio , does ocr, sends results through Q
     {
         private readonly ILogger<OcrWorkerService> _logger;
         private readonly IMinioClient _minio;
@@ -163,7 +163,7 @@ namespace DocumentLoader.OCRWorker.Services
 
             string json = JsonSerializer.Serialize(result);
 
-            // Publish to the queue your GenAI worker listens to
+            // Publish to RESULT_QUEUE for GenAI
             await _publisher.PublishAsync(RabbitMqQueues.RESULT_QUEUE, json);
 
             _logger.LogInformation($"[OCRWorker] Published OCR result for {job.ObjectName} to RESULT_QUEUE. Length={ocrText.Length}");

@@ -75,7 +75,7 @@ namespace DocumentLoader.GenAIWorker
 
             try
             {
-                // Hält den Worker am Leben, bis das System ihn stoppt
+                // Keep the service running
                 await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
             }
             catch (OperationCanceledException)

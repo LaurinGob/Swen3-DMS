@@ -18,18 +18,3 @@ public static class LogstashLogger
     }
 }
 
-/*
-LogstashLogger ist ein Singleton, überall im code verwendbar
-
-Beispielcode:
-
-LogstashLogger.Log(new
-{
-    timestamp = DateTime.UtcNow,
-    service = "api",
-    level = "info",
-    message = "Document processed",
-    documentId = Guid.NewGuid()
-});
-
-*/

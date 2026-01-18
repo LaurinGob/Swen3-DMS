@@ -5,7 +5,7 @@ using System;
 
 namespace DocumentLoader.DAL.Repositories
 {
-    public class AccessLogRepository : IAccessLogRepository
+    public class AccessLogRepository : IAccessLogRepository // Repo for managing DailyAccess records
     {
         private readonly DocumentDbContext _db;
         private readonly ILogger<AccessLogRepository> _logger;

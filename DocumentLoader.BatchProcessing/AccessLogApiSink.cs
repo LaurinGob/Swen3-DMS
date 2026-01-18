@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentLoader.Models;
 
-namespace DocumentLoader.BatchProcessing
+namespace DocumentLoader.BatchProcessing //sends access logs to an API endpoint
 {
     public class AccessLogApiSink : IAccessLogSink
     {

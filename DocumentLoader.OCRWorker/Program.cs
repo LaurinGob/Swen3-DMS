@@ -11,18 +11,18 @@ builder.Logging.AddConsole();
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<IRabbitMqSubscriber, RabbitMqSubscriber>();
 
-// Register MinIO client as a singleton
+// register MinIO client
 builder.Services.AddSingleton<IMinioClient>(sp =>
     new MinioClient()
-        .WithEndpoint("minio", 9000)       // Docker service name + port
+        .WithEndpoint("minio", 9000)       
         .WithCredentials("minioadmin", "minioadmin")
-        .WithSSL(false)                   // set true if using https
+        .WithSSL(false)                   
         .Build());
 
 
 
 
-// Register OCR worker background service
+// register OCR worker 
 builder.Services.AddHostedService<OcrWorkerService>();
 
 var app = builder.Build();

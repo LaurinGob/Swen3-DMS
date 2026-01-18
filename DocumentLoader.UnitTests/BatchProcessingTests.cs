@@ -36,7 +36,6 @@ namespace DocumentLoader.UnitTests
             _archivePath = Path.Combine(_basePath, "Archive");
             _errorPath = Path.Combine(_basePath, "Error");
 
-            // Clean up old test data
             if (Directory.Exists(_basePath)) Directory.Delete(_basePath, true);
 
             _mockSink = new Mock<IAccessLogSink>();

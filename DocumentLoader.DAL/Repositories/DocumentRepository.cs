@@ -6,7 +6,7 @@ using System;
 
 namespace DocumentLoader.DAL.Repositories
 {
-    public class DocumentRepository : IDocumentRepository
+    public class DocumentRepository : IDocumentRepository // Repo for managing Document records
     {
         private readonly DocumentDbContext _context;
         private readonly ILogger<DocumentRepository> _logger;
@@ -36,12 +36,17 @@ namespace DocumentLoader.DAL.Repositories
 
         public async Task<IEnumerable<Document>> GetAllAsync()
         {
-            return await _context.Documents.ToListAsync();
+            return await _context.Documents
+            .Include(d => d.User)
+            .OrderByDescending(d => d.UploadedAt)
+            .ToListAsync();
         }
 
         public async Task<Document?> GetByIdAsync(int id)
         {
-            return await _context.Documents.FindAsync(id);
+            return await _context.Documents
+                .Include(d => d.User) 
+                .FirstOrDefaultAsync(d => d.Id == id);
         }
 
         public async Task UpdateAsync(int id, string newSummary)

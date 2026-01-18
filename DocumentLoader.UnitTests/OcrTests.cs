@@ -34,7 +34,7 @@ namespace DocumentLoader.UnitTests
             _mockSubscriber = new Mock<IRabbitMqSubscriber>();
             _mockPublisher = new Mock<IRabbitMqPublisher>();
 
-            // Mock für Config-Pfad
+            // Mock for config path
             _mockConfig.Setup(c => c["OcrStorage:BasePath"]).Returns(Path.GetTempPath());
 
             _worker = new OcrWorkerService(

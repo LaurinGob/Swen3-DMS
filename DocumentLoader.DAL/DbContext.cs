@@ -10,6 +10,7 @@ namespace DocumentLoader.DAL
 
         public DbSet<Document> Documents { get; set; }
         public DbSet<DailyAccess> DailyAccesses { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +26,14 @@ namespace DocumentLoader.DAL
                 .WithMany()
                 .HasForeignKey(d => d.DocumentId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Document>()
+                .HasOne(d => d.User)           
+                .WithMany(u => u.Documents)    
+                .HasForeignKey(d => d.UserId)  
+                .OnDelete(DeleteBehavior.SetNull);
         }
+
+      
     }
 }

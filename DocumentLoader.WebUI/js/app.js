@@ -9,15 +9,23 @@ export function initUpload() {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const fileInput = document.getElementById("file-input");
+        const usernameInput = document.getElementById("username-input");
 
-        if (!fileInput.files.length) {
+        if (!fileInput.files.length)
+        {
             feedback.innerText = "Please select a file to upload.";
             feedback.style.color = "#B684EB";
             return;
         }
-
+        if (!usernameInput.value.trim())
+        {
+            feedback.innerText = "Please enter your username.";
+            feedback.style.color = "#B684EB";   
+            return;
+        }
         const formData = new FormData();
         formData.append("file", fileInput.files[0]);
+        formData.append("username", usernameInput.value.trim());
 
         try {
             const res = await fetch(`${API_BASE}/upload`, {
@@ -78,14 +86,24 @@ async function loadAllDocuments(query = "") {
         }
 
         data.results.forEach(doc => {
+            console.log("Das ist mein Dokument-Objekt:", doc);
             const tr = document.createElement("tr");
+
+            const creator = doc.user ? doc.user.username : (doc.username || "System");
+
+            const dateOnly = doc.uploadedAt
+                ? new Date(doc.uploadedAt).toLocaleDateString('de-DE')
+                : "---";
 
             tr.innerHTML = `
                 <td>${doc.fileName}</td>
-                <td>${doc.summary}</td>
-                <td>
-                    <button class="view-btn" data-id="${doc.id}">View Details</button>
-                    <button class="delete-btn" data-id="${doc.id}">Delete</button>
+                <td>${doc.summary || "No summary"}</td>
+                <td>${creator || "System"}</td>
+                <td>${dateOnly}</td> <td >
+                    <div class="button-container">
+                        <button class="view-btn" data-id="${doc.id}">Details</button>
+                        <button class="delete-btn" data-id="${doc.id}">Delete</button>
+                    </div>
                 </td>
             `;
             tableBody.appendChild(tr);
@@ -133,6 +151,7 @@ export function initDetails() {
     const summaryEl = document.getElementById("doc-summary");
     const statusEl = document.getElementById("status");
     const uploadedAtEl = document.getElementById("uploaded-at");
+    const username = document.getElementById("username");
 
 
     async function loadDetails() {
@@ -149,9 +168,31 @@ export function initDetails() {
             titleEl.innerText = doc.fileName;
             summaryEl.value = doc.summary ?? "";
 
+            const usernameEl = document.getElementById("username");
+            if (usernameEl) {
+                usernameEl.innerText = doc.username ?? "Unknown User";
+            }
+
             if (doc.uploadedAt) {
                 const date = new Date(doc.uploadedAt);
-                uploadedAtEl.innerText = date.toLocaleString();
+                uploadedAtEl.innerText = date.toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            else if (doc.UploadetAt)
+            {
+                const date = new Date(doc.UploadetAt);
+                uploadedAtEl.innerText = date.toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             }
             else {
                 uploadedAtEl.innerText = "Unknown";

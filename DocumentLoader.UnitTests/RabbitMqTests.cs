@@ -12,10 +12,10 @@ namespace DocumentLoader.UnitTests
         [SetUp]
         public void SetUp()
         {
-            // Wir biegen die Verbindung für den lokalen Test auf localhost um
+            //connection changed to localhost for tests
             Environment.SetEnvironmentVariable("RabbitMQ__Host", "localhost");
-            Environment.SetEnvironmentVariable("RabbitMQ__User", "myuser"); // Dein User aus docker-compose
-            Environment.SetEnvironmentVariable("RabbitMQ__Password", "mypassword"); // Dein Passwort
+            Environment.SetEnvironmentVariable("RabbitMQ__User", "myuser"); 
+            Environment.SetEnvironmentVariable("RabbitMQ__Password", "mypassword"); 
         }
         [Test]
         public async Task RabbitMq_FullRoundtrip_WorksCorrectly()
@@ -26,21 +26,21 @@ namespace DocumentLoader.UnitTests
             var testQueue = "integration-test-queue";
             var expectedMessage = "Test-Message-" + Guid.NewGuid();
 
-            // TaskCompletionSource ist wie ein Versprechen: Wir warten, bis die Nachricht ankommt
+            // wait until message arrives
             var messageReceivedTask = new TaskCompletionSource<string>();
 
             // Act
-            // 1. Subscriber starten
+            //start subscriber
             await subscriber.SubscribeAsync(testQueue, async (msg) =>
             {
-                messageReceivedTask.SetResult(msg); // Nachricht erhalten -> Versprechen einlösen
+                messageReceivedTask.SetResult(msg); 
                 await Task.CompletedTask;
             });
 
-            // 2. Nachricht senden
+            //send message
             await publisher.PublishAsync(testQueue, expectedMessage);
 
-            // 3. Warten (mit Timeout, falls RabbitMQ nicht antwortet)
+            // wait and timeout if rabbitmq fails
             var completedTask = await Task.WhenAny(messageReceivedTask.Task, Task.Delay(5000));
 
             // Assert

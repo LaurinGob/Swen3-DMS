@@ -22,6 +22,7 @@ namespace DocumentLoader.UnitTests
         private DocumentsController _controller = null!;
         private Mock<IDocumentRepository> _mockRepo = null!;
         private Mock<ILogger<DocumentsController>> _mockLogger = null!;
+        private Mock<IUserRepository> _mockUserRepo = null!;
         private Mock<IAccessLogService> _mockLogService = null!;
         private Mock<IRabbitMqPublisher> _mockPublisher = null!;
         private Mock<ElasticsearchClient> _mockElastic = null!;
@@ -32,16 +33,19 @@ namespace DocumentLoader.UnitTests
         {
             _mockRepo = new Mock<IDocumentRepository>();
             _mockLogger = new Mock<ILogger<DocumentsController>>();
+            _mockUserRepo = new Mock<IUserRepository>();
             _mockLogService = new Mock<IAccessLogService>();
             _mockPublisher = new Mock<IRabbitMqPublisher>();
             _mockElastic = new Mock<ElasticsearchClient>();
             _mockMinio = new Mock<IMinioClient>();
+
 
             _mockElastic = new Mock<ElasticsearchClient>();
 
             _controller = new DocumentsController(
                 _mockLogger.Object,
                 _mockRepo.Object,
+                _mockUserRepo.Object,
                 _mockLogService.Object,
                 _mockPublisher.Object,
                 _mockElastic.Object,
@@ -55,7 +59,7 @@ namespace DocumentLoader.UnitTests
         public async Task Upload_FileIsNull_ReturnsBadRequest()
         {
             // Act
-            var result = await _controller.Upload(null!);
+            var result = await _controller.Upload(null!, "testuser");
 
             // Assert
             Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
@@ -70,15 +74,17 @@ namespace DocumentLoader.UnitTests
             var fileName = "test.pdf";
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
             var formFile = new FormFile(stream, 0, stream.Length, "file", fileName);
+            var testUser = new User { Id = 1, Username = "testuser" };
 
             _mockMinio.Setup(m => m.BucketExistsAsync(It.IsAny<BucketExistsArgs>(), It.IsAny<CancellationToken>()))
               .ReturnsAsync(true);
 
             _mockRepo.Setup(r => r.AddAsync(It.IsAny<Document>()))
                      .ReturnsAsync((Document doc) => doc);
+            _mockUserRepo.Setup(u => u.GetOrCreateUserAsync("testuser"))
+                     .ReturnsAsync(testUser);
 
-          
-            var result = await _controller.Upload(formFile);
+            var result = await _controller.Upload(formFile, "testuser");
 
             if (result is ObjectResult obj && obj.StatusCode == 500)
             {
@@ -190,12 +196,12 @@ namespace DocumentLoader.UnitTests
             {
                 Id = docId,
                 FileName = "test.pdf",
-                Summary = "" // Wichtig: Muss leer sein, damit der Test durchgeht
+                Summary = "" 
             };
 
             _mockRepo.Setup(r => r.GetByIdAsync(docId)).ReturnsAsync(doc);
 
-            // Wir mocken den Publisher, damit er einfach Task.CompletedTask zurückgibt
+           
             _mockPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<string>()))
                           .Returns(Task.CompletedTask);
 
@@ -205,7 +211,7 @@ namespace DocumentLoader.UnitTests
             // Assert
             Assert.That(result, Is.TypeOf<AcceptedResult>());
 
-            // Prüfen, ob die Nachricht wirklich an die OCR_QUEUE gesendet wurde
+            
             _mockPublisher.Verify(p => p.PublishAsync(
                 RabbitMqQueues.OCR_QUEUE,
                 It.Is<string>(s => s.Contains($"\"DocumentId\":{docId}"))
@@ -231,7 +237,7 @@ namespace DocumentLoader.UnitTests
 
             // Assert
             Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-            // Der Publisher darf hier NIEMALS aufgerufen werden
+            
             _mockPublisher.Verify(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
@@ -281,7 +287,7 @@ namespace DocumentLoader.UnitTests
             // Assert
             Assert.That(result, Is.TypeOf<OkObjectResult>());
             var okResult = result as OkObjectResult;
-            // Prüfen, ob die Erfolgsmeldung die richtige Anzahl enthält
+          
             Assert.That(okResult!.Value!.ToString()!.Contains("1"), Is.True);
         }
 

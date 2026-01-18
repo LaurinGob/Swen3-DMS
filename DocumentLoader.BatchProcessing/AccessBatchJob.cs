@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace DocumentLoader.BatchProcessing
 {
     [DisallowConcurrentExecution]
-    public class AccessBatchJob : IJob
+    public class AccessBatchJob : IJob // Quartz job for processing access logs in batches
     {
         public async Task Execute(IJobExecutionContext context)
         {

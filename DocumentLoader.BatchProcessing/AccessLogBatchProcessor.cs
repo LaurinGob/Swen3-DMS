@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace DocumentLoader.BatchProcessing
 {
-    public class AccessLogBatchProcessor
+    public class AccessLogBatchProcessor // processes access log XML files in batches
     {
         private readonly string _inputFolder;
         private readonly string _archiveFolder;

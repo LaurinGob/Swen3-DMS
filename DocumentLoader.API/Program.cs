@@ -52,24 +52,24 @@ builder.Services.AddDbContext<DocumentDbContext>(options =>
 // -------------------------------
 builder.Services.AddScoped<IAccessLogRepository, AccessLogRepository>();
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAccessLogService, AccessLogService>();
 
 
 // -------------------------------
 // Register MinIO client singleton
 // -------------------------------
-// Ändere <MinioClient> zu <IMinioClient>
 builder.Services.AddSingleton<IMinioClient>(sp =>
 {
     var endpoint = builder.Configuration["Minio:Endpoint"] ?? "localhost:9000";
     var accessKey = builder.Configuration["Minio:AccessKey"] ?? "minioadmin";
     var secretKey = builder.Configuration["Minio:SecretKey"] ?? "minioadmin";
 
-    // Build() gibt bereits ein IMinioClient-kompatibles Objekt zurück
+    //returns minioclient 
     return new MinioClient()
         .WithEndpoint(endpoint)
         .WithCredentials(accessKey, secretKey)
-        .WithSSL(false) // Wichtig für lokale Entwicklung/Docker ohne Zertifikat
+        .WithSSL(false) 
         .Build();
 });
 

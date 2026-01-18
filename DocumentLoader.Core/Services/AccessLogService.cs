@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DocumentLoader.Core.Services
 {
-    public class AccessLogService : IAccessLogService
+    public class AccessLogService : IAccessLogService // logging daily access counts for documents
     {
         private readonly IAccessLogRepository _repository;
         private readonly IDocumentRepository _documentRepo;
@@ -25,7 +25,7 @@ namespace DocumentLoader.Core.Services
             if (accessCount < 0)
                 throw new ArgumentException("Access count must be non-negative");
 
-            // Optional: validate that document exists
+            // validate that document exists
             var document = await _documentRepo.GetByIdAsync(documentId);
             if (document == null)
             throw new InvalidOperationException($"Document {documentId} not found");
@@ -59,8 +59,7 @@ namespace DocumentLoader.Core.Services
 
             try
             {
-                // 1. Validation Phase: Check if all documents exist first
-                // This prevents partial saves without needing complex transactions yet
+                // check if all documents exist first
                 foreach (var dto in dtos)
                 {
                     var document = await _documentRepo.GetByIdAsync(dto.DocumentId);
@@ -71,7 +70,7 @@ namespace DocumentLoader.Core.Services
                     }
                 }
 
-                // 2. Execution Phase: All IDs are valid, now upsert them
+                // All IDs are valid -> upsert
                 foreach (var dto in dtos)
                 {
                     await StoreDailyAsync(dto.Date, dto.DocumentId, dto.AccessCount);
