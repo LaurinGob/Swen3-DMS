@@ -23,11 +23,13 @@ echo.
 
 :: 3. Schritt: OCR Trigger (Critical Path zu RabbitMQ)
 echo [STEP 3] Triggering Summary Generation (OCR/RabbitMQ Path)...
-echo (Assuming ID 1 for demonstration - adjust if needed)
-curl -X POST "%API_URL%/1/summaries" ^
+echo (Assuming ID 37 for demonstration - adjust if needed)
+curl -X POST "%API_URL%/37/summaries" ^
      -H "accept: */*"
 echo.
 echo.
+echo [STEP 4] Checking summary
+curl -X GET "http://localhost:5000/api/Documents/37" -H "accept: application/json"
 
 echo =======================================================
 echo Integration Test finished.
