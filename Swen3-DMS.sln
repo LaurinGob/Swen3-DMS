@@ -24,7 +24,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.BatchProcessing", "DocumentLoader.BatchProcessing\DocumentLoader.BatchProcessing.csproj", "{566B5AF5-F58C-4161-894B-87BBA4E0DAB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.Core", "DocumentLoader.Core\DocumentLoader.Core.csproj", "{0F557275-8A5C-4BD7-87B9-8620593F561B}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentLoader.ElasticSearch", "DocumentLoader.ElasticSearch\DocumentLoader.ElasticSearch.csproj", "{5F3BDA6E-7AAC-46FC-9B57-18DFCD39C4DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Projektmappenelemente", "Projektmappenelemente", "{84D27F74-D2BA-6C25-2661-968F101900D9}"
+	ProjectSection(SolutionItems) = preProject
+		env = env
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
